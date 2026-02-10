@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão Maria Gabriella - Completo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        :root { --primary-pink: #ff69b4; --dark-pink: #c71585; --success-green: #2ecc71; --soft-pink: #fff0f5; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #fcf8fa; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        header { text-align: center; margin-bottom: 25px; }
+        header h1 { color: var(--dark-pink); border-bottom: 2px solid var(--primary-pink); display: inline-block; padding-bottom: 5px; }
+        .nav { display: flex; gap: 10px; margin-bottom: 20px; }
+        .nav button { flex: 1; padding: 15px; border: 2px solid var(--primary-pink); border-radius: 10px; cursor: pointer; font-weight: bold; background: white; color: var(--dark-pink); }
+        .nav button.active { background: var(--primary-pink); color: white; }
+        .aba { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: none; border-top: 5px solid var(--primary-pink); }
+        .aba.active { display: block; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ffc0cb; border-radius: 8px; box-sizing: border-box; }
+        .btn-acao { background: var(--dark-pink); color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        .btn-pdf { background: #3498db; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 20px; }
+        .dash-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+        .card { padding: 20px; border-radius: 15px; color: white; text-align: center; font-weight: bold; }
+        .card.pink { background-color: #ff85a2; }
+        .card.dark-pink { background-color: #ff5c8a; }
+        .card.green { background-color: var(--success-green); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #3d6e60; color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; }
+        .btn-del { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header><h1>Maria Gabriella Rezende Bento</h1></header>
+
+    <div class="nav">
+        <button id="btnTabDiario" class="active" onclick="mudarAba('diario')">Lançamentos</button>
+        <button id="btnTabHist" onclick="mudarAba('hist')">Histórico por Cliente</button>
+        <button id="btnTabMensal" onclick="mudarAba('mensal')">Relatório Mensal</button>
+    </div>
+
+    <div id="abaDiario" class="aba active">
+        <div class="grid">
+            <div><label>Data:</label><input type="date" id="dataInput" onchange="atualizarView()"></div>
+            <div>
+                <label>Cliente:</label>
+                <input type="text" id="cliente" list="listaClientes" placeholder="Digite o nome...">
+                <datalist id="listaClientes"></datalist>
+            </div>
+            <div><label>Serviço:</label>
+                <select id="procedimento">
+                    <option value="Manicure Simples">Manicure Simples</option>
+                    <option value="Alongamento de unhas">Alongamento de unhas</option>
+                    <option value="Blindagem">Blindagem</option>
+                    <option value="Cílios">Cílios</option>
+                    <option value="Manutenção">Manutenção</option>
+                </select>
+            </div>
+            <div><label>Valor Bruto R$:</label><input type="number" id="valorInput" placeholder="0.00"></div>
+        </div>
+        <button class="btn-acao" onclick="adicionar()">Gravar Atendimento</button>
+
+        <div class="dash-cards" style="margin-top: 30px;">
+            <div class="card pink"><h4>Total Dia</h4><p id="dTotalAtend">0</p></div>
+            <div class="card dark-pink"><h4>Repasse Dia</h4><p id="dTotalRepasse">R$ 0,00</p></div>
+            <div class="card green"><h4>Lucro Dia</h4><p id="dTotalLiquido">R$ 0,00</p></div>
+        </div>
+        <table id="tabelaDiaria">
+            <thead><tr><th>Cliente</th><th>Serviço</th><th>Bruto</th><th>Repasse</th><th>Líquido</th><th>Ação</th></tr></thead>
+            <tbody id="corpoDiario"></tbody>
+        </table>
+        <button class="btn-pdf" onclick="gerarPDF('dia')">📄 Gerar PDF do Dia</button>
+    </div>
+
+    <div id="abaHist" class="aba">
+        <h3>Pesquisar Histórico da Cliente</h3>
+        <div style="max-width: 400px; margin-bottom: 20px;">
+            <input type="text" id="buscaCliente" list="listaClientes" placeholder="Escolha a cliente..." onchange="verHistorico()">
+        </div>
+        <div class="dash-cards">
+            <div class="card pink"><h4>Visitas</h4><p id="hVisitas">0</p></div>
+            <div class="card green"><h4>Total Pago</h4><p id="hTotal">R$ 0,00</p></div>
+            <div class="card dark-pink"><h4>Última Visita</h4><p id="hUltima">--</p></div>
+        </div>
+        <table id="tabelaHist">
+            <thead><tr><th>Data</th><th>Procedimento</th><th>Valor Bruto</th></tr></thead>
+            <tbody id="corpoHist"></tbody>
+        </table>
+    </div>
+
+    <div id="abaMensal" class="aba">
+        <input type="month" id="mesFiltro" onchange="atualizarView()" style="max-width: 200px; margin-bottom: 20px;">
+        <div class="dash-cards">
+            <div class="card pink"><h4>Atendimentos</h4><p id="mTotalAtend">0</p></div>
+            <div class="card dark-pink"><h4>Repasse</h4><p id="mTotalRepasse">R$ 0,00</p></div>
+            <div class="card green"><h4>Lucro</h4><p id="mTotalLiquido">R$ 0,00</p></div>
+        </div>
+        <table id="tabelaMensal">
+            <thead><tr><th>Data</th><th>Cliente</th><th>Serviço</th><th>Bruto</th><th>Repasse</th><th>Líquido</th></tr></thead>
+            <tbody id="corpoMensal"></tbody>
+        </table>
+        <button class="btn-pdf" onclick="gerarPDF('mes')">📄 Gerar PDF Mensal</button>
+    </div>
+</div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('gabriella_v11')) || [];
+
+    window.onload = function() {
+        const hoje = new Date().toISOString().split('T')[0];
+        document.getElementById('dataInput').value = hoje;
+        document.getElementById('mesFiltro').value = hoje.substring(0, 7);
+        atualizarSugestoes();
+        atualizarView();
+    };
+
+    function mudarAba(tipo) {
+        document.querySelectorAll('.aba').forEach(a => a.classList.remove('active'));
+        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById('aba' + tipo.charAt(0).toUpperCase() + tipo.slice(1)).classList.add('active');
+        document.getElementById('btnTab' + tipo.charAt(0).toUpperCase() + tipo.slice(1)).classList.add('active');
+    }
+
+    function atualizarSugestoes() {
+        const lista = document.getElementById('listaClientes');
+        const nomesUnicos = [...new Set(db.map(i => i.cliente))];
+        lista.innerHTML = nomesUnicos.map(nome => `<option value="${nome}">`).join('');
+    }
+
+    function adicionar() {
+        const data = document.getElementById('dataInput').value;
+        const cliente = document.getElementById('cliente').value;
+        const proc = document.getElementById('procedimento').value;
+        const bruto = parseFloat(document.getElementById('valorInput').value);
+
+        if(!cliente || isNaN(bruto)) return alert("Preencha os campos!");
+
+        const dObj = new Date(data + 'T00:00:00');
+        const taxa = (dObj.getDay() === 0) ? 0.20 : 0.30;
+        const rep = (bruto - 3) * taxa;
+
+        db.push({ id: Date.now(), data, cliente, procedimento: proc, bruto, repasse: rep, liquido: bruto - rep });
+        localStorage.setItem('gabriella_v11', JSON.stringify(db));
+        
+        document.getElementById('cliente').value = "";
+        document.getElementById('valorInput').value = "";
+        atualizarSugestoes();
+        atualizarView();
+    }
+
+    function verHistorico() {
+        const nome = document.getElementById('buscaCliente').value;
+        const hist = db.filter(i => i.cliente === nome).sort((a,b) => b.data.localeCompare(a.data));
+        const corpo = document.getElementById('corpoHist');
+        corpo.innerHTML = "";
+        
+        let total = 0;
+        hist.forEach(i => {
+            total += i.bruto;
+            corpo.innerHTML += `<tr><td>${i.data.split('-').reverse().join('/')}</td><td>${i.procedimento}</td><td>R$ ${i.bruto.toFixed(2)}</td></tr>`;
+        });
+
+        document.getElementById('hVisitas').innerText = hist.length;
+        document.getElementById('hTotal').innerText = `R$ ${total.toFixed(2)}`;
+        document.getElementById('hUltima').innerText = hist.length > 0 ? hist[0].data.split('-').reverse().join('/') : "--";
+    }
+
+    function atualizarView() {
+        const dataF = document.getElementById('dataInput').value;
+        const mesF = document.getElementById('mesFiltro').value;
+        
+        const diários = db.filter(i => i.data === dataF);
+        const mensais = db.filter(i => i.data.startsWith(mesF));
+
+        render('corpoDiario', diários, true);
+        render('corpoMensal', mensais, false);
+        
+        calc('dTotalAtend', 'dTotalRepasse', 'dTotalLiquido', diários);
+        calc('mTotalAtend', 'mTotalRepasse', 'mTotalLiquido', mensais);
+    }
+
+    function render(id, lista, acao) {
+        const corpo = document.getElementById(id);
+        corpo.innerHTML = "";
+        lista.forEach(i => {
+            corpo.innerHTML += `<tr>
+                ${acao ? '' : `<td>${i.data.split('-').reverse().join('/')}</td>`}
+                <td>${i.cliente}</td><td>${i.procedimento}</td>
+                <td>R$ ${i.bruto.toFixed(2)}</td><td>R$ ${i.repasse.toFixed(2)}</td><td>R$ ${i.liquido.toFixed(2)}</td>
+                ${acao ? `<td><button class="btn-del" onclick="apagar(${i.id})">X</button></td>` : ''}
+            </tr>`;
+        });
+    }
+
+    function calc(at, re, li, lista) {
+        document.getElementById(at).innerText = lista.length;
+        document.getElementById(re).innerText = `R$ ${lista.reduce((a, b) => a + b.repasse, 0).toFixed(2)}`;
+        document.getElementById(li).innerText = `R$ ${lista.reduce((a, b) => a + b.liquido, 0).toFixed(2)}`;
+    }
+
+    function apagar(id) {
+        if(confirm("Apagar registro?")) {
+            db = db.filter(i => i.id !== id);
+            localStorage.setItem('gabriella_v11', JSON.stringify(db));
+            atualizarSugestoes();
+            atualizarView();
+        }
+    }
+
+    function gerarPDF(modo) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const f = modo === 'dia' ? document.getElementById('dataInput').value : document.getElementById('mesFiltro').value;
+        const lista = db.filter(i => (modo === 'dia' ? i.data === f : i.data.startsWith(f)));
+
+        if(lista.length === 0) return alert("Sem dados para o PDF.");
+
+        const totalAtend = lista.length;
+        const totalRep = lista.reduce((a, b) => a + b.repasse, 0);
+        const totalLiq = lista.reduce((a, b) => a + b.liquido, 0);
+        
+        // Cabeçalho Rosa
+        doc.setFillColor(255, 105, 180);
+        doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.text("Maria Gabriella Rezende Bento", 14, 25);
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(12);
+        const dFormat = f.split('-').reverse().join('/');
+        doc.text(`Relatório ${modo === 'dia' ? 'Diário' : 'Mensal'}: ${dFormat}`, 14, 50);
+
+        const dados = lista.map(i => [
+            modo === 'dia' ? i.cliente : i.data.split('-').reverse().join('/'),
+            i.procedimento,
+            `R$ ${i.bruto.toFixed(2)}`, 
+            `R$ ${i.repasse.toFixed(2)}`,
+            `R$ ${i.liquido.toFixed(2)}`
+        ]);
+
+        doc.autoTable({
+            head: [[modo === 'dia' ? 'Cliente' : 'Data', 'Procedimento', 'Bruto', 'Repasse', 'Líquido']],
+            body: dados,
+            startY: 55,
+            headStyles: { fillColor: [61, 110, 96] }
+        });
+
+        const finalY = doc.lastAutoTable.finalY + 15;
+        doc.setFillColor(255, 133, 162);
+        doc.roundedRect(14, finalY, 50, 22, 3, 3, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.text("TOTAL", 18, finalY + 8);
+        doc.text(`${totalAtend}`, 18, finalY + 17);
+
+        doc.setFillColor(255, 92, 138);
+        doc.roundedRect(72, finalY, 55, 22, 3, 3, 'F');
+        doc.text("REPASSE", 76, finalY + 8);
+        doc.text(`R$ ${totalRep.toFixed(2)}`, 76, finalY + 17);
+
+        doc.setFillColor(46, 204, 113);
+        doc.roundedRect(135, finalY, 60, 22, 3, 3, 'F');
+        doc.text("SEU LUCRO", 139, finalY + 8);
+        doc.text(`R$ ${totalLiq.toFixed(2)}`, 139, finalY + 17);
+
+        doc.save(`Relatorio_${f}.pdf`);
+    }
+</script>
+</body>
+</html>
