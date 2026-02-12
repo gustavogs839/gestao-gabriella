@@ -3,17 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Maria Gabriella - Nuvem</title>
+    <title>Sistema Maria Gabriella - Seguro</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     
     <style>
         :root { --primary-pink: #ff69b4; --dark-pink: #c71585; --success-green: #2ecc71; }
         body { font-family: 'Segoe UI', sans-serif; background-color: #fcf8fa; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: auto; }
+        
+        /* ESTILO TELA DE LOGIN */
+        #loginContainer { max-width: 400px; margin: 100px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid var(--primary-pink); text-align: center; display: block; }
+        #loginContainer h2 { color: var(--dark-pink); }
+        .input-login { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ffc0cb; border-radius: 8px; box-sizing: border-box; }
+        
+        /* CONTAINER PRINCIPAL (ESCONDIDO ATÉ LOGAR) */
+        .container { max-width: 1000px; margin: auto; display: none; }
+        
         header { text-align: center; margin-bottom: 25px; }
         header h1 { color: var(--dark-pink); border-bottom: 2px solid var(--primary-pink); display: inline-block; padding-bottom: 5px; }
         .nav { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -42,8 +52,20 @@
 
 <div id="loading">Sincronizando...</div>
 
-<div class="container">
-    <header><h1>Maria Gabriella Rezende Bento</h1></header>
+<div id="loginContainer">
+    <h2>Acesso Restrito</h2>
+    <p>Maria Gabriella Rezende Bento</p>
+    <input type="email" id="emailLogin" class="input-login" placeholder="Seu e-mail">
+    <input type="password" id="senhaLogin" class="input-login" placeholder="Sua senha">
+    <button class="btn-acao" onclick="fazerLogin()">Entrar no Sistema</button>
+</div>
+
+<div class="container" id="mainApp">
+    <header>
+        <h1>Maria Gabriella Rezende Bento</h1>
+        <br>
+        <button onclick="fazerLogout()" style="background:none; border:none; color:gray; text-decoration:underline; cursor:pointer; font-size:12px;">Sair / Trocar Conta</button>
+    </header>
 
     <div class="nav">
         <button id="btnTabDiario" class="active" onclick="mudarAba('diario')">Lançamentos</button>
@@ -114,7 +136,6 @@
 </div>
 
 <script>
-    // CONFIGURAÇÃO RETIRADA DO TEU PRINT
     const firebaseConfig = {
         apiKey: "AIzaSyDdvWWvUdbOjPcQxQcb5jn1rXffHm5IThM",
         authDomain: "gestaogabriella-b6b5f.firebaseapp.com",
@@ -127,34 +148,60 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth(); // Módulo de autenticação
     let atendimentos = [];
 
-    window.onload = function() {
+    // --- FUNÇÃO DE LOGIN ---
+    function fazerLogin() {
+        const email = document.getElementById('emailLogin').value;
+        const senha = document.getElementById('senhaLogin').value;
+        if(!email || !senha) return alert("Preencha o e-mail e a senha!");
+
+        auth.signInWithEmailAndPassword(email, senha)
+            .catch(error => alert("Erro ao entrar: " + error.message));
+    }
+
+    function fazerLogout() {
+        auth.signOut();
+    }
+
+    // --- OBSERVADOR DE ESTADO (MONITORA SE ESTÁ LOGADO) ---
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            iniciarEscutaDados(user.uid);
+        } else {
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('mainApp').style.display = 'none';
+            atendimentos = [];
+        }
+    });
+
+    function iniciarEscutaDados(userId) {
+        document.getElementById('loading').style.display = 'block';
         const hoje = new Date().toISOString().split('T')[0];
         document.getElementById('dataInput').value = hoje;
         document.getElementById('mesFiltro').value = hoje.substring(0, 7);
-        document.getElementById('loading').style.display = 'block';
-        
-        db.collection("atendimentos").orderBy("data", "desc").onSnapshot((snapshot) => {
+
+        // FILTRA APENAS DADOS DO USUÁRIO LOGADO (owner)
+        db.collection("atendimentos")
+          .where("owner", "==", userId)
+          .orderBy("data", "desc")
+          .onSnapshot((snapshot) => {
             atendimentos = [];
             snapshot.forEach((doc) => atendimentos.push({ id: doc.id, ...doc.data() }));
             atualizarSugestoes();
             atualizarView();
             document.getElementById('loading').style.display = 'none';
         }, (error) => {
-            console.error("Erro ao carregar dados:", error);
-            document.getElementById('loading').innerText = "Erro ao sincronizar";
+            console.error("Erro:", error);
+            document.getElementById('loading').innerText = "Erro de permissão";
         });
-    };
-
-    function mudarAba(tipo) {
-        document.querySelectorAll('.aba').forEach(a => a.classList.remove('active'));
-        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
-        document.getElementById('aba' + tipo.charAt(0).toUpperCase() + tipo.slice(1)).classList.add('active');
-        document.getElementById('btnTab' + tipo.charAt(0).toUpperCase() + tipo.slice(1)).classList.add('active');
     }
 
     async function adicionar() {
+        const user = auth.currentUser;
         const data = document.getElementById('dataInput').value;
         const cliente = document.getElementById('cliente').value;
         const proc = document.getElementById('procedimento').value;
@@ -169,16 +216,26 @@
 
         try {
             await db.collection("atendimentos").add({
-                data, cliente, procedimento: proc, bruto, repasse: rep, liquido: bruto - rep
+                data, cliente, procedimento: proc, bruto, repasse: rep, liquido: bruto - rep,
+                owner: user.uid // GRAVA O DONO DO DADO
             });
             document.getElementById('cliente').value = "";
             document.getElementById('valorInput').value = "";
         } catch (e) { alert("Erro ao salvar: " + e); }
     }
 
+    // ... (TODAS AS OUTRAS FUNÇÕES IGUAIS PARA MANTER O LAYOUT) ...
+    function mudarAba(tipo) {
+        document.querySelectorAll('.aba').forEach(a => a.classList.remove('active'));
+        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById('aba' + tipo.charAt(0).toUpperCase() + tipo.slice(1)).classList.add('active');
+        document.getElementById('btnTab' + tipo.charAt(0).toUpperCase() + tipo.slice(1)).classList.add('active');
+    }
+
     function atualizarView() {
         const dataF = document.getElementById('dataInput').value;
         const mesF = document.getElementById('mesFiltro').value;
+        if(!dataF) return;
         
         const dObj = new Date(dataF + 'T00:00:00');
         document.getElementById('infoTaxaDia').innerText = `Taxa Hoje: ${(dObj.getDay() === 0) ? "20% (Domingo)" : "30%"}`;
