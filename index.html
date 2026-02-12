@@ -123,11 +123,23 @@
     const auth = firebase.auth();
     let atendimentos = [];
 
-    function fazerLogin() {
-        const email = document.getElementById('emailLogin').value;
-        const senha = document.getElementById('senhaLogin').value;
-        auth.signInWithEmailAndPassword(email, senha).catch(e => alert("Erro: " + e.message));
-    }
+   function fazerLogin() {
+    const email = document.getElementById('emailLogin').value.trim();
+    const senha = document.getElementById('senhaLogin').value.trim();
+    
+    if(!email || !senha) return alert("Preencha e-mail e senha!");
+
+    console.log("Tentando login com:", email);
+    
+    auth.signInWithEmailAndPassword(email, senha)
+        .then((userCredential) => {
+            console.log("Sucesso!");
+        })
+        .catch((error) => {
+            console.error("Erro detalhado:", error.code, error.message);
+            alert("Erro: " + error.message + "\nCódigo: " + error.code);
+        });
+}
 
     function fazerLogout() { auth.signOut(); }
 
