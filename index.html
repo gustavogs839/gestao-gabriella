@@ -102,6 +102,11 @@
 
     <div id="abaMensal" class="aba">
         <input type="month" id="mesFiltro" onchange="atualizarView()">
+        <div class="dash-cards" style="margin-top: 20px;">
+            <div class="card pink"><h4>Atendimentos</h4><p id="mTotalAtend">0</p></div>
+            <div class="card dark-pink"><h4>Repasse</h4><p id="mTotalRepasse">R$ 0,00</p></div>
+            <div class="card green"><h4>Lucro</h4><p id="mTotalLiquido">R$ 0,00</p></div>
+        </div>
         <table><thead><tr><th>Data</th><th>Cliente</th><th>Serviço</th><th>Bruto</th><th>Líquido</th></tr></thead><tbody id="corpoMensal"></tbody></table>
         <button class="btn-pdf" onclick="gerarPDF('mes')">📄 PDF Mensal</button>
     </div>
@@ -123,23 +128,19 @@
     const auth = firebase.auth();
     let atendimentos = [];
 
-   function fazerLogin() {
-    const email = document.getElementById('emailLogin').value.trim();
-    const senha = document.getElementById('senhaLogin').value.trim();
-    
-    if(!email || !senha) return alert("Preencha e-mail e senha!");
+    // FUNÇÃO LOGIN DETETIVE
+    function fazerLogin() {
+        const email = document.getElementById('emailLogin').value.trim();
+        const senha = document.getElementById('senhaLogin').value.trim();
+        
+        if(!email || !senha) return alert("Por favor, preencha o e-mail e a senha!");
 
-    console.log("Tentando login com:", email);
-    
-    auth.signInWithEmailAndPassword(email, senha)
-        .then((userCredential) => {
-            console.log("Sucesso!");
-        })
-        .catch((error) => {
-            console.error("Erro detalhado:", error.code, error.message);
-            alert("Erro: " + error.message + "\nCódigo: " + error.code);
-        });
-}
+        auth.signInWithEmailAndPassword(email, senha)
+            .then(() => { console.log("Login OK"); })
+            .catch((error) => {
+                alert("Erro: " + error.message + "\nCódigo: " + error.code);
+            });
+    }
 
     function fazerLogout() { auth.signOut(); }
 
@@ -151,15 +152,24 @@
         } else {
             document.getElementById('loginContainer').style.display = 'block';
             document.getElementById('mainApp').style.display = 'none';
+            atendimentos = [];
         }
     });
 
     function iniciarEscuta(uid) {
         document.getElementById('loading').style.display = 'block';
+        const hoje = new Date().toISOString().split('T')[0];
+        document.getElementById('dataInput').value = hoje;
+        document.getElementById('mesFiltro').value = hoje.substring(0, 7);
+
         db.collection("atendimentos").where("owner", "==", uid).onSnapshot(snap => {
             atendimentos = [];
             snap.forEach(doc => atendimentos.push({id: doc.id, ...doc.data()}));
+            atualizarSugestoes();
             atualizarView();
+            document.getElementById('loading').style.display = 'none';
+        }, (error) => {
+            console.error(error);
             document.getElementById('loading').style.display = 'none';
         });
     }
@@ -173,8 +183,10 @@
         if(!cliente || isNaN(bruto)) return alert("Preencha tudo!");
         const taxa = (new Date(data + 'T00:00:00').getDay() === 0) ? 0.20 : 0.30;
         const rep = (bruto - 3) * taxa;
-        await db.collection("atendimentos").add({data, cliente, procedimento: proc, bruto, repasse: rep, liquido: bruto - rep, owner: user.uid});
-        document.getElementById('cliente').value = ""; document.getElementById('valorInput').value = "";
+        try {
+            await db.collection("atendimentos").add({data, cliente, procedimento: proc, bruto, repasse: rep, liquido: bruto - rep, owner: user.uid});
+            document.getElementById('cliente').value = ""; document.getElementById('valorInput').value = "";
+        } catch (e) { alert("Erro ao salvar: " + e); }
     }
 
     function mudarAba(tipo) {
@@ -188,17 +200,34 @@
     function atualizarView() {
         const dataF = document.getElementById('dataInput').value;
         const mesF = document.getElementById('mesFiltro').value;
+        
+        if(dataF) {
+            const dObj = new Date(dataF + 'T00:00:00');
+            document.getElementById('infoTaxaDia').innerText = `Taxa Hoje: ${(dObj.getDay() === 0) ? "20% (Domingo)" : "30%"}`;
+        }
+        
         const dia = atendimentos.filter(i => i.data === dataF);
         const mes = atendimentos.filter(i => i.data.startsWith(mesF));
+        
         render('corpoDiario', dia, true);
         render('corpoMensal', mes, false);
         calc('dTotalAtend', 'dTotalRepasse', 'dTotalLiquido', dia);
+        
+        // Relatório Mensal Cards
+        document.getElementById('mTotalAtend').innerText = mes.length;
+        document.getElementById('mTotalRepasse').innerText = `R$ ${mes.reduce((a,b)=>a+b.repasse,0).toFixed(2)}`;
+        document.getElementById('mTotalLiquido').innerText = `R$ ${mes.reduce((a,b)=>a+b.liquido,0).toFixed(2)}`;
     }
 
     function render(id, lista, acao) {
         const corpo = document.getElementById(id); corpo.innerHTML = "";
         lista.forEach(i => {
-            corpo.innerHTML += `<tr>${acao ? '' : `<td>${i.data}</td>`}<td>${i.cliente}</td><td>${i.procedimento}</td><td>${i.bruto}</td><td>${i.repasse.toFixed(2)}</td><td>${i.liquido.toFixed(2)}</td>${acao ? `<td><button onclick="apagar('${i.id}')">X</button></td>` : ''}</tr>`;
+            corpo.innerHTML += `<tr>
+                ${acao ? '' : `<td>${i.data.split('-').reverse().join('/')}</td>`}
+                <td>${i.cliente}</td><td>${i.procedimento}</td>
+                <td>R$ ${i.bruto.toFixed(2)}</td><td>R$ ${i.repasse.toFixed(2)}</td><td>R$ ${i.liquido.toFixed(2)}</td>
+                ${acao ? `<td><button class="btn-del" onclick="apagar('${i.id}')">X</button></td>` : ''}
+            </tr>`;
         });
     }
 
@@ -210,13 +239,29 @@
 
     async function apagar(id) { if(confirm("Apagar?")) await db.collection("atendimentos").doc(id).delete(); }
 
+    function atualizarSugestoes() {
+        const nomes = [...new Set(atendimentos.map(i => i.cliente))];
+        document.getElementById('listaClientes').innerHTML = nomes.map(n => `<option value="${n}">`).join('');
+    }
+
+    function verHistorico() {
+        const nome = document.getElementById('buscaCliente').value;
+        const hist = atendimentos.filter(i => i.cliente === nome).sort((a,b)=>b.data.localeCompare(a.data));
+        const corpo = document.getElementById('corpoHist'); corpo.innerHTML = "";
+        let total = 0;
+        hist.forEach(i => { total += i.bruto; corpo.innerHTML += `<tr><td>${i.data.split('-').reverse().join('/')}</td><td>${i.procedimento}</td><td>R$ ${i.bruto.toFixed(2)}</td></tr>`; });
+        document.getElementById('hVisitas').innerText = hist.length; document.getElementById('hTotal').innerText = `R$ ${total.toFixed(2)}`;
+    }
+
     function gerarPDF(modo) {
         const { jsPDF } = window.jspdf; const doc = new jsPDF();
         const f = modo === 'dia' ? document.getElementById('dataInput').value : document.getElementById('mesFiltro').value;
         const lista = atendimentos.filter(i => i.data.startsWith(f));
-        const dados = lista.map(i => [i.data, i.cliente, i.procedimento, i.bruto, i.liquido.toFixed(2)]);
-        doc.autoTable({head: [['Data','Cliente','Serviço','Bruto','Líquido']], body: dados});
-        doc.save(`Relatorio.pdf`);
+        if(lista.length === 0) return alert("Sem dados.");
+        const dados = lista.map(i => [i.data.split('-').reverse().join('/'), i.cliente, i.procedimento, `R$ ${i.bruto.toFixed(2)}`, `R$ ${i.liquido.toFixed(2)}`]);
+        doc.text("Maria Gabriella Rezende Bento", 14, 15);
+        doc.autoTable({head: [['Data','Cliente','Serviço','Bruto','Líquido']], body: dados, startY: 20});
+        doc.save(`Relatorio_${f}.pdf`);
     }
 </script>
 </body>
