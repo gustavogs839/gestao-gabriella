@@ -3,27 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Maria Gabriella - Seguro</title>
+    <title>Sistema Maria Gabriella - Seguro v2</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     
     <style>
         :root { --primary-pink: #ff69b4; --dark-pink: #c71585; --success-green: #2ecc71; }
         body { font-family: 'Segoe UI', sans-serif; background-color: #fcf8fa; margin: 0; padding: 20px; }
-        
-        /* ESTILO TELA DE LOGIN */
         #loginContainer { max-width: 400px; margin: 100px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid var(--primary-pink); text-align: center; display: block; }
-        #loginContainer h2 { color: var(--dark-pink); }
         .input-login { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ffc0cb; border-radius: 8px; box-sizing: border-box; }
-        
-        /* CONTAINER PRINCIPAL (ESCONDIDO ATÉ LOGAR) */
         .container { max-width: 1000px; margin: auto; display: none; }
-        
         header { text-align: center; margin-bottom: 25px; }
         header h1 { color: var(--dark-pink); border-bottom: 2px solid var(--primary-pink); display: inline-block; padding-bottom: 5px; }
         .nav { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -94,7 +88,6 @@
             <div><label>Valor Bruto R$:</label><input type="number" id="valorInput" placeholder="0.00"></div>
         </div>
         <button class="btn-acao" onclick="adicionar()">Gravar Atendimento</button>
-
         <div class="dash-cards" style="margin-top: 30px;">
             <div class="card pink"><h4>Atendimentos</h4><p id="dTotalAtend">0</p></div>
             <div class="card dark-pink"><h4>Repasse Total</h4><p id="dTotalRepasse">R$ 0,00</p></div>
@@ -136,7 +129,6 @@
 </div>
 
 <script>
-    // Configurações do Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyDdvWWvUdbOjPcQxQcb5jn1rXffHm5IThM",
         authDomain: "gestaogabriella-b6b5f.firebaseapp.com",
@@ -155,8 +147,8 @@
     function fazerLogin() {
         const email = document.getElementById('emailLogin').value;
         const senha = document.getElementById('senhaLogin').value;
-        if(!email || !senha) return alert("Preencha o e-mail e a senha!");
-        auth.signInWithEmailAndPassword(email, senha).catch(error => alert("Erro ao entrar: " + error.message));
+        if(!email || !senha) return alert("Preencha!");
+        auth.signInWithEmailAndPassword(email, senha).catch(e => alert("Erro: " + e.message));
     }
 
     function fazerLogout() { auth.signOut(); }
@@ -169,16 +161,11 @@
         } else {
             document.getElementById('loginContainer').style.display = 'block';
             document.getElementById('mainApp').style.display = 'none';
-            atendimentos = [];
         }
     });
 
     function iniciarEscutaDados(userId) {
         document.getElementById('loading').style.display = 'block';
-        const hoje = new Date().toISOString().split('T')[0];
-        document.getElementById('dataInput').value = hoje;
-        document.getElementById('mesFiltro').value = hoje.substring(0, 7);
-
         db.collection("atendimentos")
           .where("owner", "==", userId)
           .orderBy("data", "desc")
@@ -189,7 +176,7 @@
             atualizarView();
             document.getElementById('loading').style.display = 'none';
         }, (error) => {
-            console.error("Erro:", error);
+            console.error(error);
             document.getElementById('loading').style.display = 'none';
         });
     }
@@ -200,22 +187,16 @@
         const cliente = document.getElementById('cliente').value;
         const proc = document.getElementById('procedimento').value;
         const bruto = parseFloat(document.getElementById('valorInput').value);
-
-        if(!cliente || isNaN(bruto)) return alert("Preencha tudo!");
-
-        const dObj = new Date(data + 'T00:00:00');
-        const taxa = (dObj.getDay() === 0) ? 0.20 : 0.30;
-        const base = bruto - 3;
-        const rep = base * taxa;
-
+        if(!cliente || isNaN(bruto)) return alert("Erro!");
+        const taxa = (new Date(data + 'T00:00:00').getDay() === 0) ? 0.20 : 0.30;
+        const rep = (bruto - 3) * taxa;
         try {
             await db.collection("atendimentos").add({
-                data, cliente, procedimento: proc, bruto, repasse: rep, liquido: bruto - rep,
-                owner: user.uid
+                data, cliente, procedimento: proc, bruto, repasse: rep, liquido: bruto - rep, owner: user.uid
             });
             document.getElementById('cliente').value = "";
             document.getElementById('valorInput').value = "";
-        } catch (e) { alert("Erro ao salvar: " + e); }
+        } catch (e) { alert(e); }
     }
 
     function mudarAba(tipo) {
@@ -228,9 +209,10 @@
     function atualizarView() {
         const dataF = document.getElementById('dataInput').value;
         const mesF = document.getElementById('mesFiltro').value;
-        if(!dataF) return;
-        const dObj = new Date(dataF + 'T00:00:00');
-        document.getElementById('infoTaxaDia').innerText = `Taxa Hoje: ${(dObj.getDay() === 0) ? "20% (Domingo)" : "30%"}`;
+        if(dataF) {
+            const dObj = new Date(dataF + 'T00:00:00');
+            document.getElementById('infoTaxaDia').innerText = `Taxa Hoje: ${(dObj.getDay() === 0) ? "20% (Domingo)" : "30%"}`;
+        }
         const dia = atendimentos.filter(i => i.data === dataF);
         const mes = atendimentos.filter(i => i.data.startsWith(mesF));
         render('corpoDiario', dia, true);
@@ -258,7 +240,7 @@
         document.getElementById(li).innerText = `R$ ${lista.reduce((a,b)=>a+b.liquido,0).toFixed(2)}`;
     }
 
-    async function apagar(id) { if(confirm("Apagar da nuvem?")) await db.collection("atendimentos").doc(id).delete(); }
+    async function apagar(id) { if(confirm("Apagar?")) await db.collection("atendimentos").doc(id).delete(); }
 
     function atualizarSugestoes() {
         const nomes = [...new Set(atendimentos.map(i => i.cliente))];
