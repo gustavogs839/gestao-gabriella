@@ -191,7 +191,7 @@
     const proc = document.getElementById('procedimento').value;
     const bruto = parseFloat(document.getElementById('valorInput').value);
 
-    if(!cliente || isNaN(bruto) || !data) return alert("Por favor, preencha Data, Cliente e Valor!");
+    if(!cliente || isNaN(bruto) || !data) return alert("Preencha Data, Cliente e Valor!");
 
     const dObj = new Date(data + 'T00:00:00');
     const taxa = (dObj.getDay() === 0) ? 0.20 : 0.30;
@@ -199,20 +199,16 @@
 
     try {
         await db.collection("atendimentos").add({
-            data, 
-            cliente, 
-            procedimento: proc, 
-            bruto, 
-            repasse: rep, 
-            liquido: bruto - rep, 
-            owner: user.uid // Garante que o dado tem um dono
+            data, cliente, procedimento: proc, bruto, 
+            repasse: rep, liquido: bruto - rep, owner: user.uid
         });
-        alert("Gravado com sucesso!"); // Alerta para confirmar
+        // Limpa os campos para o próximo
         document.getElementById('cliente').value = "";
         document.getElementById('valorInput').value = "";
+        alert("Atendimento gravado!");
     } catch (e) { 
+        alert("Erro ao gravar: Verifique as Regras do Firestore.");
         console.error(e);
-        alert("Erro de Permissão no Firebase! Verifique as 'Regras' do Firestore. Detalhe: " + e.message); 
     }
 }
 
