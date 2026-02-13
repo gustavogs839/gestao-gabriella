@@ -113,7 +113,7 @@
 </div>
 
 <script>
-    const firebaseConfig = {
+   const firebaseConfig = {
         apiKey: "AIzaSyDdvWWvUdbOjPcQxQcb5jn1rXffHm5IThM",
         authDomain: "gestaogabriella-b6b5f.firebaseapp.com",
         projectId: "gestaogabriella-b6b5f",
@@ -122,6 +122,13 @@
         appId: "1:751665904056:web:8ff310e8b38effa6b4374d",
         measurementId: "G-W9L8T22VPF"
     };
+
+    // Inicialização forçada
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+    const auth = firebase.auth();
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
