@@ -185,27 +185,36 @@
     }
 
     async function adicionar() {
-        const user = auth.currentUser;
-        const data = document.getElementById('dataInput').value;
-        const cliente = document.getElementById('cliente').value;
-        const proc = document.getElementById('procedimento').value;
-        const bruto = parseFloat(document.getElementById('valorInput').value);
+    const user = auth.currentUser;
+    const data = document.getElementById('dataInput').value;
+    const cliente = document.getElementById('cliente').value;
+    const proc = document.getElementById('procedimento').value;
+    const bruto = parseFloat(document.getElementById('valorInput').value);
 
-        if(!cliente || isNaN(bruto)) return alert("Preencha todos os campos!");
+    if(!cliente || isNaN(bruto) || !data) return alert("Por favor, preencha Data, Cliente e Valor!");
 
-        const dObj = new Date(data + 'T00:00:00');
-        const taxa = (dObj.getDay() === 0) ? 0.20 : 0.30;
-        const rep = (bruto - 3) * taxa;
+    const dObj = new Date(data + 'T00:00:00');
+    const taxa = (dObj.getDay() === 0) ? 0.20 : 0.30;
+    const rep = (bruto - 3) * taxa;
 
-        try {
-            await db.collection("atendimentos").add({
-                data, cliente, procedimento: proc, bruto, 
-                repasse: rep, liquido: bruto - rep, owner: user.uid
-            });
-            document.getElementById('cliente').value = "";
-            document.getElementById('valorInput').value = "";
-        } catch (e) { alert("Erro ao gravar: " + e); }
+    try {
+        await db.collection("atendimentos").add({
+            data, 
+            cliente, 
+            procedimento: proc, 
+            bruto, 
+            repasse: rep, 
+            liquido: bruto - rep, 
+            owner: user.uid // Garante que o dado tem um dono
+        });
+        alert("Gravado com sucesso!"); // Alerta para confirmar
+        document.getElementById('cliente').value = "";
+        document.getElementById('valorInput').value = "";
+    } catch (e) { 
+        console.error(e);
+        alert("Erro de Permissão no Firebase! Verifique as 'Regras' do Firestore. Detalhe: " + e.message); 
     }
+}
 
     function mudarAba(tipo) {
         document.querySelectorAll('.aba').forEach(a => a.classList.remove('active'));
