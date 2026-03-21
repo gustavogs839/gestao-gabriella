@@ -15,90 +15,13 @@
     <link rel="stylesheet" href="style.css">
 
     <style>
-/* 🟢 REFORÇO DE FONTE E BOTÕES QUADRADOS */
+/* 🟢 REFORÇO DE FONTE E CORES */
 body, table, td, th, label, input, select {
     font-weight: 700 !important;
     color: #2c3e50 !important;
 }
 
-.btn-table-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    border: 2px solid;
-    background: white;
-    cursor: pointer;
-    font-size: 18px;
-    margin: 2px;
-}
-.btn-edit { color: #f39c12; border-color: #f39c12; }
-.btn-del { color: #e74c3c; border-color: #e74c3c; }
-
-/* 🟢 QUADRADO DO LEMBRETE WHATSAPP (NOVO) */
-.container-lembrete {
-    grid-column: span 2;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 15px;
-    background: #eafaf1; /* Verde clarinho */
-    padding: 12px;
-    border-radius: 8px;
-    border: 2px solid #2ecc71; /* Verde WhatsApp */
-}
-
-/* 🟢 ABA AGENDA (CARDS LIMPOS) */
-.agenda-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
-.agenda-item {
-    background: white;
-    border-radius: 10px;
-    padding: 15px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    border-left: 6px solid #c71585;
-}
-.agenda-hora { font-size: 22px; color: #c71585; min-width: 80px; }
-.agenda-info { flex-grow: 1; padding-left: 15px; border-left: 1px solid #eee; }
-
-        /* 🟢 REFORÇO DE FONTE E CORES */
-        body, table, td, th, label, input, select {
-            font-weight: 700 !important; /* Letras bem grossas */
-            color: #2c3e50 !important;
-        }
-
-        table th { background-color: #f8f9fa; text-transform: uppercase; font-size: 13px; }
-
-        /* 🟢 QUADRADOS EM VOLTA DOS BOTÕES DA TABELA */
-        .btn-table-action {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            border-radius: 6px; /* Quadrado levemente arredondado */
-            border: 2px solid;
-            background: white;
-            cursor: pointer;
-            font-size: 18px;
-            transition: 0.2s;
-            margin: 2px;
-        }
-
-        .btn-edit { color: #f39c12; border-color: #f39c12; }
-        .btn-edit:hover { background: #f39c12; color: white; }
-
-        .btn-del { color: #e74c3c; border-color: #e74c3c; }
-        .btn-del:hover { background: #e74c3c; color: white; }
-
-        /* Agenda Visual */
-        .agenda-container { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
-        .agenda-card { background: #fff; border-left: 6px solid #ff4757; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center;}
-        .agenda-hora { font-size: 24px; font-weight: 800; color: #ff4757; width: 100px; }
+table th { background-color: #f8f9fa; text-transform: uppercase; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -144,8 +67,9 @@ body, table, td, th, label, input, select {
                 <div><label>Horário:</label><input type="time" id="horarioInput"></div>
                 <div>
                     <label>Cliente:</label>
-                    <input type="text" id="cliente" list="listaClientes" placeholder="Selecione..." oninput="preencherTelefoneCliente()">
-                    <datalist id="listaClientes"></datalist>
+                    <select id="cliente" onchange="preencherTelefoneCliente()">
+                        <option value="">Selecione um cliente...</option>
+                    </select>
                 </div>
                 <div><label>WhatsApp:</label><input type="text" id="telefoneInput" placeholder="11999999999"></div>
                 <div><label>Serviço:</label>
@@ -165,6 +89,9 @@ body, table, td, th, label, input, select {
         📱 Ativar Lembrete Automático (WhatsApp)
     </label>
 </div>
+            </div>
+            <div style="margin-top: 15px;">
+                <button onclick="mudarAba('clientes')" class="btn-acao" style="background: #3498db;">Cadastrar Novo Cliente</button>
             </div>
             <button class="btn-acao" onclick="adicionar()" id="btnSalvarAtendimento">Gravar Atendimento</button>
 
@@ -187,8 +114,10 @@ body, table, td, th, label, input, select {
             <h3>Histórico por Cliente</h3>
             <div class="grid" style="grid-template-columns: 1fr auto; align-items: end;">
                 <div>
-                    <label>Buscar Cliente:</label>
-                    <input type="text" id="buscaCliente" list="listaClientes" placeholder="Digite o nome..." onchange="verHistorico()">
+                    <label>Selecionar Cliente:</label>
+                    <select id="buscaCliente" onchange="verHistorico()">
+                        <option value="">Todos os clientes</option>
+                    </select>
                 </div>
             </div>
             <div class="dash-cards">
@@ -197,7 +126,7 @@ body, table, td, th, label, input, select {
             </div>
             <div class="table-container">
                 <table>
-                    <thead><tr><th>Data</th><th>Procedimento</th><th>Valor</th></tr></thead>
+                    <thead><tr><th>Data</th><th>Cliente</th><th>Procedimento</th><th>Valor</th></tr></thead>
                     <tbody id="corpoHist"></tbody>
                 </table>
             </div>

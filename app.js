@@ -79,6 +79,24 @@ async function carregarClientes() {
             </td></tr>`;
             if(datalist) datalist.innerHTML += `<option value="${c.nome}">`;
         });
+        // Populate select for scheduling
+        const selectCliente = document.getElementById('cliente');
+        if(selectCliente) {
+            selectCliente.innerHTML = '<option value="">Selecione um cliente...</option>';
+            tmp.forEach(c => {
+                selectCliente.innerHTML += `<option value="${c.nome}">${c.nome}</option>`;
+            });
+        }
+        // Populate Histórico select
+        const selectHist = document.getElementById('buscaCliente');
+        if(selectHist) {
+            const selecionado = selectHist.value || '';
+            selectHist.innerHTML = '<option value="">Todos os clientes</option>';
+            tmp.forEach(c => {
+                selectHist.innerHTML += `<option value="${c.nome}">${c.nome}</option>`;
+            });
+            if (selecionado) selectHist.value = selecionado;
+        }
     });
 }
 
@@ -146,7 +164,7 @@ async function adicionar() {
     const horario = document.getElementById('horarioInput').value;
     const telefone = document.getElementById('telefoneInput').value;
     const enviarLembrete = document.getElementById('enviarLembrete').checked;
-    if(!cliente || !data || !horario || !telefone) return alert("Preencha tudo!");
+    if(!cliente || cliente === "" || !data || !horario || !telefone) return alert("Preencha tudo, incluindo selecionar um cliente registrado!");
     const dObj = new Date(data + 'T00:00:00');
     const taxa = (dObj.getDay() === 0) ? 0.20 : 0.30;
     const repasse = (bruto - 3) * taxa;
@@ -181,45 +199,80 @@ fetch('http://18.226.177.100:5000/agendar', {
 
 function atualizarAgenda() {
     const dataA = document.getElementById('dataAgenda').value;
-    const lista = atendimentos.filter(i => i.data === dataA).sort((a,b)=>(a.horario||"").localeCompare(b.horario||""));
+    const lista = atendimentos
+        .filter(i => i.data === dataA)
+        .sort((a,b) => (a.horario||"").localeCompare(b.horario||""));
     const container = document.getElementById('listaAgenda');
     if(!container) return;
     container.innerHTML = "";
 
-    if(lista.length === 0) {
-        container.innerHTML = `<div style="padding:20px; color:#999;">Sem agendamentos para hoje.</div>`;
+    const jornadaInicio = 7 * 60;   // 07:00
+    const jornadaFim = 22 * 60;    // 22:00
+
+    const parseMinutos = hora => {
+        const [h, m] = (hora || '00:00').split(':').map(Number);
+        return h * 60 + m;
+    };
+
+    const formatHora = minutos => {
+        const h = Math.floor(minutos / 60).toString().padStart(2, '0');
+        const m = (minutos % 60).toString().padStart(2, '0');
+        return `${h}:${m}`;
+    };
+
+    let cursor = jornadaInicio;
+    const gaps = [];
+
+    lista.forEach(item => {
+        const inicio = parseMinutos(item.horario);
+        if (inicio > cursor) gaps.push({ start: cursor, end: inicio });
+        cursor = Math.max(cursor, inicio + 120); // 2h de duração fixa
+    });
+
+    if (cursor < jornadaFim) gaps.push({ start: cursor, end: jornadaFim });
+
+    if (lista.length === 0) {
+        container.innerHTML = `<div class="agenda-vago">Sem agendamentos hoje. Horário livre completo de ${formatHora(jornadaInicio)} até ${formatHora(jornadaFim)}.</div>`;
         return;
     }
 
+    container.innerHTML += `<div class="agenda-vago">Horários vagos: ${gaps.map(g => `${formatHora(g.start)} - ${formatHora(g.end)}`).join(' • ') || 'nenhum'}</div>`;
+
     lista.forEach(i => {
-        let n = (i.telefone || "").replace(/\D/g, '');
-        if(n && !n.startsWith('55')) n = '55' + n;
-        
-        // Data formatada para: Quinta-feira, 12 de março de 2026
+        let n = (i.telefone || '').replace(/\D/g, '');
+        if (n && !n.startsWith('55')) n = '55' + n;
+
+        const inicio = parseMinutos(i.horario);
+        const fim = inicio + 120;
+        const horarioFim = formatHora(fim);
+
         let p = i.data.split('-');
         let dObj = new Date(p[0], p[1]-1, p[2]);
         let dExt = dObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
         dExt = dExt.charAt(0).toUpperCase() + dExt.slice(1);
 
-        let msg = `Oi, ${i.cliente}, tudo bem? 🌷\nPassando para confirmar nosso encontro marcado para o seu momento da beleza:\n\n🗓️ Data: ${dExt}\n🕙 Horário: ${i.horario}\n💇‍♀️ Serviço: ${i.procedimento}\n\nPode confirmar para a gente se está tudo certo? ✨\n\n⚠️ Um lembrete gentil: Caso surja algum imprevisto e você não possa comparecer, pedimos a gentileza de nos avisar com o máximo de antecedência possível. Assim, conseguimos reorganizar nossa agenda e liberar o horário para outra cliente.\n\nMal podemos esperar para te ver! 💖`;
-        let link = `https://wa.me/${n}?text=${encodeURIComponent(msg)}`;
+        const msg = `Oi, ${i.cliente}, tudo bem? \nPassando para confirmar horário:\n\n Data: ${dExt}\n Horário: ${i.horario} (até ${horarioFim})\n Serviço: ${i.procedimento}\n\nPode confirmar para a gente se está tudo certo?`;
+        const link = `https://wa.me/${n}?text=${encodeURIComponent(msg)}`;
 
         container.innerHTML += `
-        <div class="agenda-item">
-            <div class="agenda-hora">${i.horario || "--:--"}</div>
+        <div class="agenda-card">
+            <div class="agenda-hora">${i.horario || '--:--'}</div>
             <div class="agenda-info">
-                <div style="font-size: 18px;">${i.cliente}</div>
-                <div style="font-size: 14px; color: #7f8c8d;">💅 ${i.procedimento}</div>
+                <div><strong>${i.cliente}</strong></div>
+                <div>💅 ${i.procedimento}</div>
+                <div>⏱️ Duração: 2h (até ${horarioFim})</div>
+                <div>📱 ${i.telefone || 'N/A'}</div>
             </div>
-            <div style="display:flex; gap:10px;">
+            <div class="agenda-acao">
                 <a href="${link}" target="_blank" style="text-decoration:none;">
-                    <button style="background:#2ecc71; color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">💬 Lembrete</button>
+                    <button class="btn-whatsapp">📱 WhatsApp</button>
                 </a>
-                <button onclick="prepararEdicao('${i.id}')" style="background:#f1f2f6; border:none; padding:10px; border-radius:8px; cursor:pointer;">✏️</button>
+                <button onclick="prepararEdicao('${i.id}')">✏️ Editar</button>
             </div>
         </div>`;
     });
 }
+
 
 function atualizarView() {
     const dataF = document.getElementById('dataInput').value;
@@ -262,12 +315,13 @@ function calcularResumos(at, re, li, lista) {
 
 function verHistorico() {
     const nome = document.getElementById('buscaCliente').value;
-    const hist = atendimentos.filter(i => i.cliente === nome).sort((a,b)=>b.data.localeCompare(a.data));
+    const hist = nome ? atendimentos.filter(i => i.cliente === nome) : atendimentos.slice();
+    hist.sort((a,b)=>b.data.localeCompare(a.data));
     const corpo = document.getElementById('corpoHist'); if(!corpo) return;
     corpo.innerHTML = ""; let total = 0;
     hist.forEach(i => { 
         total += (i.bruto || 0); 
-        corpo.innerHTML += `<tr><td>${i.data.split('-').reverse().join('/')}</td><td>${i.procedimento}</td><td>R$ ${(i.bruto || 0).toFixed(2)}</td></tr>`; 
+        corpo.innerHTML += `<tr><td>${i.data.split('-').reverse().join('/')}</td><td>${i.cliente}</td><td>${i.procedimento}</td><td>R$ ${(i.bruto || 0).toFixed(2)}</td></tr>`;
     });
     document.getElementById('hVisitas').innerText = hist.length; 
     document.getElementById('hTotal').innerText = `R$ ${total.toFixed(2)}`;
