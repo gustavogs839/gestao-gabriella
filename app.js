@@ -251,7 +251,7 @@ function atualizarAgenda() {
         let dExt = dObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
         dExt = dExt.charAt(0).toUpperCase() + dExt.slice(1);
 
-        const msg = `Oi, ${i.cliente}, tudo bem? \nPassando para confirmar horário:\n\n Data: ${dExt}\n Horário: ${i.horario} (até ${horarioFim})\n Serviço: ${i.procedimento}\n\nPode confirmar para a gente se está tudo certo?`;
+        const msg = `Oi, ${i.cliente}, tudo bem? \nPassando para confirmar seu horário:\n\n Data: ${dExt}\n Horário: ${i.horario} \n Serviço: ${i.procedimento}\n\nPode confirmar para a gente se está tudo certo? \n Se precisar desmarcar, consegue me avisar o quanto antes? Assim consigo organizar minha agenda.\n \n Ah, peço também que tente não atrasar mais que 15 minutinhos, tá? Isso me ajuda a atender você e as próximas clientes com todo o carinho e dedicação, sem correria. Até logo!\n`;
         const link = `https://wa.me/${n}?text=${encodeURIComponent(msg)}`;
 
         container.innerHTML += `
