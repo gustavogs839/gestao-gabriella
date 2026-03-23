@@ -112,12 +112,16 @@ table th { background-color: #f8f9fa; text-transform: uppercase; font-size: 13px
 
         <section id="abaHist" class="aba" style="display: none;">
             <h3>Histórico por Cliente</h3>
-            <div class="grid" style="grid-template-columns: 1fr auto; align-items: end;">
+            <div class="grid" style="grid-template-columns: 1fr 1fr auto; align-items: end; gap: 10px;">
                 <div>
                     <label>Selecionar Cliente:</label>
                     <select id="buscaCliente" onchange="verHistorico()">
                         <option value="">Todos os clientes</option>
                     </select>
+                </div>
+                <div>
+                    <label>Buscar (nome):</label>
+                    <input type="text" id="buscarHistorico" oninput="verHistorico()" placeholder="Digite parte do nome...">
                 </div>
             </div>
             <div class="dash-cards">
@@ -173,10 +177,10 @@ table th { background-color: #f8f9fa; text-transform: uppercase; font-size: 13px
                     <div><label>Nome:</label><input type="text" id="cadClienteNome"></div>
                     <div><label>WhatsApp:</label><input type="text" id="cadClienteTelefone" placeholder="Ex: 11999999999"></div>
                 </div>
-                <div style="display: flex; gap: 10px; margin-top: 15px;">
-                    <button class="btn-acao" onclick="salvarCliente()" id="btnSalvarCliente" style="flex: 2;">Cadastrar Cliente</button>
-                    <button class="btn-acao" onclick="importarClientesAntigos()" style="flex: 1; background: #3498db;">🔄 Importar Antigos</button>
-                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px; align-items: center;">
+                <input type="text" id="filtroCliente" placeholder="Pesquisar cliente..." oninput="filtrarClientes()" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px;">
+                <button class="btn-acao" onclick="salvarCliente()" id="btnSalvarCliente" style="flex: 0 0 180px;">Cadastrar Cliente</button>
+            </div>
             </div>
             <div class="card">
                 <h3>Lista de Clientes</h3>

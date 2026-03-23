@@ -71,14 +71,13 @@ async function carregarClientes() {
             if (d && d.nome) tmp.push({ id: doc.id, ...d });
         });
         tmp.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
-        tmp.forEach(c => {
-            listaClientesMemoria.push(c);
-            tbody.innerHTML += `<tr><td>${c.nome}</td><td>${c.telefone || ''}</td><td>
-                <button onclick="editarCliente('${c.id}','${c.nome.replace(/'/g, "\\'")}','${(c.telefone || '').replace(/'/g, "\\'")}')" class="btn-table-action btn-edit" title="Editar">✎</button>
-                <button onclick="excluirCliente('${c.id}')" class="btn-table-action btn-del" title="Excluir">X</button>
-            </td></tr>`;
-            if(datalist) datalist.innerHTML += `<option value="${c.nome}">`;
-        });
+        listaClientesMemoria = tmp;
+        if (datalist) {
+            tmp.forEach(c => {
+                datalist.innerHTML += `<option value="${c.nome}">`;
+            });
+        }
+        renderizarClientes();
         // Populate select for scheduling
         const selectCliente = document.getElementById('cliente');
         if(selectCliente) {
@@ -98,6 +97,23 @@ async function carregarClientes() {
             if (selecionado) selectHist.value = selecionado;
         }
     });
+}
+
+function renderizarClientes() {
+    const tbody = document.getElementById('corpoTabelaClientes'); if(!tbody) return;
+    const filtro = (document.getElementById('filtroCliente')?.value || '').trim().toLowerCase();
+    const listaFiltrada = filtro ? listaClientesMemoria.filter(c => c.nome.toLowerCase().includes(filtro)) : listaClientesMemoria;
+    tbody.innerHTML = '';
+    listaFiltrada.forEach(c => {
+        tbody.innerHTML += `<tr><td>${c.nome}</td><td>${c.telefone || ''}</td><td>
+            <button onclick="editarCliente('${c.id}','${c.nome.replace(/'/g, "\\'")}','${(c.telefone || '').replace(/'/g, "\\'")}')" class="btn-table-action btn-edit" title="Editar">✎</button>
+            <button onclick="excluirCliente('${c.id}')" class="btn-table-action btn-del" title="Excluir">X</button>
+        </td></tr>`;
+    });
+}
+
+function filtrarClientes() {
+    renderizarClientes();
 }
 
 async function salvarCliente() {
@@ -220,6 +236,9 @@ function atualizarAgenda() {
         return `${h}:${m}`;
     };
 
+    // garante ordenação cronológica e elimina horários inválidos
+    lista.sort((a, b) => parseMinutos(a.horario) - parseMinutos(b.horario));
+
     let cursor = jornadaInicio;
     const gaps = [];
 
@@ -236,7 +255,7 @@ function atualizarAgenda() {
         return;
     }
 
-    container.innerHTML += `<div class="agenda-vago">Horários vagos: ${gaps.map(g => `${formatHora(g.start)} - ${formatHora(g.end)}`).join(' • ') || 'nenhum'}</div>`;
+    container.innerHTML += `<div class="agenda-vago">Horários livres: ${gaps.map(g => `${formatHora(g.start)} - ${formatHora(g.end)}`).join(' • ') || 'nenhum'}</div>`;
 
     lista.forEach(i => {
         let n = (i.telefone || '').replace(/\D/g, '');
@@ -314,8 +333,15 @@ function calcularResumos(at, re, li, lista) {
 }
 
 function verHistorico() {
-    const nome = document.getElementById('buscaCliente').value;
-    const hist = nome ? atendimentos.filter(i => i.cliente === nome) : atendimentos.slice();
+    const nomeSelecionado = document.getElementById('buscaCliente').value;
+    const buscaTexto = (document.getElementById('buscarHistorico')?.value || '').trim().toLowerCase();
+    let hist = atendimentos.slice();
+    if (nomeSelecionado) {
+        hist = hist.filter(i => i.cliente === nomeSelecionado);
+    }
+    if (buscaTexto) {
+        hist = hist.filter(i => (i.cliente || '').toLowerCase().includes(buscaTexto));
+    }
     hist.sort((a,b)=>b.data.localeCompare(a.data));
     const corpo = document.getElementById('corpoHist'); if(!corpo) return;
     corpo.innerHTML = ""; let total = 0;
