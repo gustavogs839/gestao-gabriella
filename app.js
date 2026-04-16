@@ -5,7 +5,7 @@ let idEdicaoCliente = null;
 let chartSemanal = null;
 let chartServicos = null;
 
-const GOOGLE_CLIENT_ID = 'COLOQUE_SEU_CLIENT_ID_AQUI.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '751665904056-ojml1pkgpp57ovasjktp8uolh2ifukbf.apps.googleusercontent.com';
 let googleCalendarConnected = false;
 
 function gapiOnLoad() {
