@@ -5,6 +5,119 @@ let idEdicaoCliente = null;
 let chartSemanal = null;
 let chartServicos = null;
 
+const GOOGLE_CLIENT_ID = 'COLOQUE_SEU_CLIENT_ID_AQUI.apps.googleusercontent.com';
+let googleCalendarConnected = false;
+
+function gapiOnLoad() {
+    if (!window.gapi) return;
+    gapi.load('client:auth2', initGoogleCalendarClient);
+}
+
+window.addEventListener('load', () => {
+    if (window.gapi) {
+        gapiOnLoad();
+        return;
+    }
+    const interval = setInterval(() => {
+        if (window.gapi) {
+            clearInterval(interval);
+            gapiOnLoad();
+        }
+    }, 200);
+});
+
+async function initGoogleCalendarClient() {
+    try {
+        await gapi.client.init({
+            clientId: GOOGLE_CLIENT_ID,
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'],
+            scope: 'https://www.googleapis.com/auth/calendar.events'
+        });
+        const authInstance = gapi.auth2.getAuthInstance();
+        googleCalendarConnected = authInstance.isSignedIn.get();
+        authInstance.isSignedIn.listen(onGoogleSignInChange);
+        updateGoogleAgendaButton();
+    } catch (e) {
+        console.error('Erro ao iniciar Google Calendar API', e);
+    }
+}
+
+function onGoogleSignInChange(isSignedIn) {
+    googleCalendarConnected = isSignedIn;
+    updateGoogleAgendaButton();
+}
+
+function updateGoogleAgendaButton() {
+    const btn = document.getElementById('btnConectarAgenda');
+    if (!btn) return;
+    if (googleCalendarConnected) {
+        btn.innerText = 'Google Agenda Conectada';
+        btn.style.background = '#4285F4';
+        btn.style.color = '#fff';
+    } else {
+        btn.innerText = 'Conectar Google Agenda';
+        btn.style.background = '';
+        btn.style.color = '';
+    }
+}
+
+function toggleGoogleAgenda() {
+    const authInstance = window.gapi?.auth2?.getAuthInstance();
+    if (!authInstance) return alert('A API do Google ainda não carregou. Recarregue a página e tente de novo.');
+    if (authInstance.isSignedIn.get()) {
+        authInstance.signOut().then(() => onGoogleSignInChange(false));
+    } else {
+        authInstance.signIn().catch(e => alert('Erro ao conectar Google Agenda: ' + (e.error || e.message || e)));
+    }
+}
+
+function isGoogleAgendaConectada() {
+    return googleCalendarConnected && window.gapi?.auth2?.getAuthInstance()?.isSignedIn.get();
+}
+
+function montarEventoGoogle(dados) {
+    const [year, month, day] = dados.data.split('-').map(Number);
+    const [hour, minute] = (dados.horario || '00:00').split(':').map(Number);
+    const inicio = new Date(year, month - 1, day, hour, minute);
+    const fim = new Date(inicio.getTime() + 120 * 60000);
+    return {
+        summary: `${dados.cliente} - ${dados.procedimento}`,
+        description: `Telefone: ${dados.telefone || 'N/A'}\nValor: R$ ${(dados.bruto || 0).toFixed(2)}\nServiço: ${dados.procedimento}`,
+        start: { dateTime: inicio.toISOString(), timeZone: 'America/Sao_Paulo' },
+        end: { dateTime: fim.toISOString(), timeZone: 'America/Sao_Paulo' }
+    };
+}
+
+async function criarEventoGoogle(dados) {
+    if (!isGoogleAgendaConectada()) return null;
+    const evento = montarEventoGoogle(dados);
+    const resposta = await gapi.client.calendar.events.insert({ calendarId: 'primary', resource: evento });
+    return resposta.result?.id || null;
+}
+
+async function atualizarEventoGoogle(eventId, dados) {
+    if (!isGoogleAgendaConectada()) return null;
+    const evento = montarEventoGoogle(dados);
+    try {
+        const resposta = await gapi.client.calendar.events.update({ calendarId: 'primary', eventId, resource: evento });
+        return resposta.result?.id || eventId;
+    } catch (e) {
+        if (e.status === 404 || e.result?.error?.code === 404) {
+            return await criarEventoGoogle(dados);
+        }
+        throw e;
+    }
+}
+
+async function removerEventoGoogle(eventId) {
+    if (!isGoogleAgendaConectada() || !eventId) return;
+    try {
+        await gapi.client.calendar.events.delete({ calendarId: 'primary', eventId });
+    } catch (e) {
+        console.warn('Não foi possível remover evento do Google Calendar', e);
+    }
+}
+
 auth.onAuthStateChanged(user => {
     if (user) {
         document.getElementById('loginContainer').style.display = 'none';
@@ -193,13 +306,43 @@ async function adicionar() {
     const dados = { data, horario, telefone, cliente, procedimento: proc, bruto, repasse, liquido, owner: user.uid };
     try {
         if (idEdicao) {
-            await db.collection("atendimentos").doc(idEdicao).update(dados);
+            const ref = db.collection("atendimentos").doc(idEdicao);
+            const original = atendimentos.find(i => i.id === idEdicao) || {};
+            await ref.update(dados);
             idEdicao = null;
             document.getElementById('btnSalvarAtendimento').innerText = "Gravar Atendimento";
+            if (isGoogleAgendaConectada()) {
+                try {
+                    if (original.googleEventoId) {
+                        const eventId = await atualizarEventoGoogle(original.googleEventoId, dados);
+                        if (eventId) await ref.update({ googleEventoId: eventId });
+                    } else {
+                        const eventId = await criarEventoGoogle(dados);
+                        if (eventId) await ref.update({ googleEventoId: eventId });
+                    }
+                    mostrarAviso("Atualizado e Google Agenda sincronizada!");
+                } catch (e) {
+                    console.error('Erro atualizando evento no Google Calendar', e);
+                    mostrarAviso("Atualizado! Conecte à Google Agenda para sincronizar.");
+                }
+            } else {
+                mostrarAviso("Atualizado!");
+            }
         } else {
-            await db.collection("atendimentos").add(dados);
+            const ref = await db.collection("atendimentos").add(dados);
+            if (isGoogleAgendaConectada()) {
+                try {
+                    const eventId = await criarEventoGoogle(dados);
+                    if (eventId) await ref.update({ googleEventoId: eventId });
+                    mostrarAviso("Gravado e evento criado na Google Agenda!");
+                } catch (e) {
+                    console.error('Erro criando evento no Google Calendar', e);
+                    mostrarAviso("Gravado, mas não foi possível criar evento no Google Agenda.");
+                }
+            } else {
+                mostrarAviso("Gravado!");
+            }
         }
-        mostrarAviso("Gravado!");
         document.getElementById('cliente').value = "";
         document.getElementById('valorInput').value = "";
         document.getElementById('telefoneInput').value = "";
@@ -364,7 +507,18 @@ function mostrarAviso(t) {
     setTimeout(() => { toast.style.display = 'none'; }, 3000);
 }
 
-async function apagar(id) { if(confirm("Apagar?")) await db.collection("atendimentos").doc(id).delete(); }
+async function apagar(id) {
+    if (!confirm("Apagar?")) return;
+    const original = atendimentos.find(i => i.id === id) || {};
+    if (original.googleEventoId && isGoogleAgendaConectada()) {
+        try {
+            await removerEventoGoogle(original.googleEventoId);
+        } catch (e) {
+            console.warn('Falha ao remover evento do Google Calendar', e);
+        }
+    }
+    await db.collection("atendimentos").doc(id).delete();
+}
 
 function renderizarGraficos() {
     const mes = document.getElementById('dashMesFiltro').value;

@@ -40,7 +40,10 @@ table th { background-color: #f8f9fa; text-transform: uppercase; font-size: 13px
     <div class="container" id="mainApp" style="display: none;">
         <header>
             <h1>Maria Gabriella Rezende Bento</h1>
-            <button onclick="fazerLogout()" class="btn-sair">Sair do Sistema</button>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <button onclick="toggleGoogleAgenda()" class="btn-sair" id="btnConectarAgenda">Conectar Google Agenda</button>
+                <button onclick="fazerLogout()" class="btn-sair">Sair do Sistema</button>
+            </div>
         </header>
 
         <nav class="nav">
@@ -191,6 +194,7 @@ table th { background-color: #f8f9fa; text-transform: uppercase; font-size: 13px
         </section>
     </div>
 
+    <script async defer src="https://apis.google.com/js/api.js"></script>
     <script src="firebase-config.js"></script>
     <script src="app.js"></script>
 </body>

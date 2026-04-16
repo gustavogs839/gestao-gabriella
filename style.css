@@ -46,12 +46,25 @@ header h1 {
 }
 
 .btn-sair { 
-    background: none; 
-    border: none; 
-    color: #888; 
-    text-decoration: underline; 
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    color: var(--white); 
+    text-decoration: none; 
     cursor: pointer; 
-    font-size: 12px; 
+    font-size: 13px; 
+    padding: 10px 14px;
+    border-radius: 999px;
+    transition: transform 0.2s ease, background 0.2s ease;
+    box-shadow: 0 4px 15px rgba(199, 21, 133, 0.18);
+}
+
+.btn-sair:hover {
+    background: rgba(255, 255, 255, 0.35);
+    transform: translateY(-1px);
 }
 
 /* Abas de Navegação */
