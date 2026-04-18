@@ -6,27 +6,65 @@ let chartSemanal = null;
 let chartServicos = null;
 
 const GOOGLE_CLIENT_ID = '751665904056-ojml1pkgpp57ovasjktp8uolh2ifukbf.apps.googleusercontent.com';
-const GOOGLE_API_KEY = 'AIzaSyD...'; // Substitua pela sua API key do Google Cloud se necessário
+const GOOGLE_API_KEY = ''; // Preencha se tiver uma API key do Google Cloud (não é obrigatória para OAuth + Calendar API)
 let googleCalendarConnected = false;
+let accessToken = null;
+let tokenClient = null;
+let gapiInited = false;
+let gisInited = false;
 
-function gapiOnLoad() {
-    if (!window.gapi) return;
-    console.log('[Google API] carregado');
-    gapi.load('client:auth2', initGoogleCalendarClient);
+function tryInitGoogleServices() {
+    if (gapiInited || !window.gapi || !window.google?.accounts?.oauth2) return;
+    gisInited = true;
+    console.log('[Google API] e [GIS] carregados');
+    gapi.load('client', async () => {
+        try {
+            const initOptions = {
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest']
+            };
+            if (GOOGLE_API_KEY) initOptions.apiKey = GOOGLE_API_KEY;
+
+            await gapi.client.init(initOptions);
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: 'https://www.googleapis.com/auth/calendar.events',
+                callback: handleTokenResponse
+            });
+            gapiInited = true;
+            googleCalendarConnected = !!accessToken;
+            updateGoogleAgendaButton();
+        } catch (e) {
+            console.error('Erro ao iniciar Google Calendar API', e, formatGoogleError(e));
+            const origin = window.location.origin;
+            let message = 'Erro ao iniciar Google Agenda. Veja o console do navegador para detalhes.\n' + formatGoogleError(e);
+            if (e?.details?.includes('Not a valid origin') || e?.error === 'idpiframe_initialization_failed') {
+                message += '\n\nOrigem atual: ' + origin + '\nRegistre este domínio em Credenciais > Origens JavaScript autorizadas do OAuth Client ID.';
+            }
+            alert(message);
+        }
+    });
 }
 
 window.addEventListener('load', () => {
-    if (window.gapi) {
-        gapiOnLoad();
-        return;
-    }
     const interval = setInterval(() => {
-        if (window.gapi) {
+        if (window.gapi && window.google?.accounts?.oauth2) {
             clearInterval(interval);
-            gapiOnLoad();
+            tryInitGoogleServices();
         }
     }, 200);
 });
+
+function handleTokenResponse(response) {
+    if (response.error) {
+        console.error('Erro ao obter token do Google', response);
+        alert('Erro ao conectar Google Agenda. Veja o console do navegador para detalhes.\n' + formatGoogleError(response));
+        return;
+    }
+    accessToken = response.access_token;
+    gapi.client.setToken({ access_token: accessToken });
+    googleCalendarConnected = true;
+    updateGoogleAgendaButton();
+}
 
 function formatGoogleError(e) {
     if (!e) return 'Erro desconhecido';
@@ -40,40 +78,27 @@ function formatGoogleError(e) {
     }
 }
 
-async function initGoogleCalendarClient() {
-    if (location.protocol === 'file:') {
-        alert('A autenticação do Google não funciona via file://. Use um servidor local (por exemplo http://localhost) ou publique o app em um domínio autorizado.');
+function requestGoogleAccessToken() {
+    if (!tokenClient) {
+        return alert('A API do Google ainda não carregou ou não foi inicializada. Recarregue a página e verifique se o app está hospedado em um domínio autorizado.');
     }
-
-    try {
-        const initOptions = {
-            clientId: GOOGLE_CLIENT_ID,
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'],
-            scope: 'https://www.googleapis.com/auth/calendar.events'
-        };
-        if (GOOGLE_API_KEY) initOptions.apiKey = GOOGLE_API_KEY;
-
-        await gapi.client.init(initOptions);
-        const authInstance = gapi.auth2?.getAuthInstance();
-        if (!authInstance) throw new Error('gapi.auth2 não foi inicializado corretamente.');
-
-        googleCalendarConnected = authInstance.isSignedIn.get();
-        authInstance.isSignedIn.listen(onGoogleSignInChange);
-        updateGoogleAgendaButton();
-    } catch (e) {
-        console.error('Erro ao iniciar Google Calendar API', e, formatGoogleError(e));
-        const origin = window.location.origin;
-        let message = 'Erro ao iniciar Google Agenda. Veja o console do navegador para detalhes.\n' + formatGoogleError(e);
-        if (e?.details?.includes('Not a valid origin') || e?.error === 'idpiframe_initialization_failed') {
-            message += '\n\nOrigem atual: ' + origin + '\nRegistre este domínio em Credenciais > Origens JavaScript autorizadas do OAuth Client ID.';
-        }
-        alert(message);
-    }
+    tokenClient.requestAccessToken({ prompt: '' });
 }
 
-function onGoogleSignInChange(isSignedIn) {
-    googleCalendarConnected = isSignedIn;
-    updateGoogleAgendaButton();
+function signOutGoogleAgenda() {
+    if (!accessToken) {
+        googleCalendarConnected = false;
+        updateGoogleAgendaButton();
+        return;
+    }
+    google.accounts.oauth2.revoke(accessToken, () => {
+        accessToken = null;
+        googleCalendarConnected = false;
+        if (window.gapi?.client) {
+            gapi.client.setToken(null);
+        }
+        updateGoogleAgendaButton();
+    });
 }
 
 function updateGoogleAgendaButton() {
@@ -91,27 +116,18 @@ function updateGoogleAgendaButton() {
 }
 
 function toggleGoogleAgenda() {
-    const authInstance = window.gapi?.auth2?.getAuthInstance();
-    if (!authInstance) {
+    if (!tokenClient) {
         return alert('A API do Google ainda não carregou ou não foi inicializada. Recarregue a página e verifique se o app está hospedado em um domínio autorizado.');
     }
-    if (authInstance.isSignedIn.get()) {
-        authInstance.signOut().then(() => onGoogleSignInChange(false));
+    if (googleCalendarConnected) {
+        signOutGoogleAgenda();
     } else {
-        authInstance.signIn().catch(e => {
-            console.error('Erro ao conectar com Google Agenda', e, formatGoogleError(e));
-            const origin = window.location.origin;
-            let message = 'Erro ao conectar Google Agenda. Veja o console do navegador para detalhes.\n' + formatGoogleError(e);
-            if (e?.details?.includes('Not a valid origin') || e?.error === 'idpiframe_initialization_failed') {
-                message += '\n\nOrigem atual: ' + origin + '\nRegistre este domínio em Credenciais > Origens JavaScript autorizadas do OAuth Client ID.';
-            }
-            alert(message);
-        });
+        requestGoogleAccessToken();
     }
 }
 
 function isGoogleAgendaConectada() {
-    return googleCalendarConnected && window.gapi?.auth2?.getAuthInstance()?.isSignedIn.get();
+    return googleCalendarConnected && !!accessToken;
 }
 
 function montarEventoGoogle(dados) {
