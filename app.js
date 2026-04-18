@@ -6,7 +6,7 @@ let chartSemanal = null;
 let chartServicos = null;
 
 const GOOGLE_CLIENT_ID = '751665904056-ojml1pkgpp57ovasjktp8uolh2ifukbf.apps.googleusercontent.com';
-const GOOGLE_API_KEY = ''; // Opcional: informe se você tiver uma API key do Google Cloud
+const GOOGLE_API_KEY = 'AIzaSyD...'; // Substitua pela sua API key do Google Cloud se necessário
 let googleCalendarConnected = false;
 
 function gapiOnLoad() {
