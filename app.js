@@ -62,7 +62,12 @@ async function initGoogleCalendarClient() {
         updateGoogleAgendaButton();
     } catch (e) {
         console.error('Erro ao iniciar Google Calendar API', e, formatGoogleError(e));
-        alert('Erro ao iniciar Google Agenda. Veja o console do navegador para detalhes.\n' + formatGoogleError(e));
+        const origin = window.location.origin;
+        let message = 'Erro ao iniciar Google Agenda. Veja o console do navegador para detalhes.\n' + formatGoogleError(e);
+        if (e?.details?.includes('Not a valid origin') || e?.error === 'idpiframe_initialization_failed') {
+            message += '\n\nOrigem atual: ' + origin + '\nRegistre este domínio em Credenciais > Origens JavaScript autorizadas do OAuth Client ID.';
+        }
+        alert(message);
     }
 }
 
@@ -95,7 +100,12 @@ function toggleGoogleAgenda() {
     } else {
         authInstance.signIn().catch(e => {
             console.error('Erro ao conectar com Google Agenda', e, formatGoogleError(e));
-            alert('Erro ao conectar Google Agenda. Veja o console do navegador para detalhes.\n' + formatGoogleError(e));
+            const origin = window.location.origin;
+            let message = 'Erro ao conectar Google Agenda. Veja o console do navegador para detalhes.\n' + formatGoogleError(e);
+            if (e?.details?.includes('Not a valid origin') || e?.error === 'idpiframe_initialization_failed') {
+                message += '\n\nOrigem atual: ' + origin + '\nRegistre este domínio em Credenciais > Origens JavaScript autorizadas do OAuth Client ID.';
+            }
+            alert(message);
         });
     }
 }
