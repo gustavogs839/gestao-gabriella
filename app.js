@@ -80,9 +80,30 @@ function formatGoogleError(e) {
 
 function requestGoogleAccessToken() {
     if (!tokenClient) {
-        return alert('A API do Google ainda não carregou ou não foi inicializada. Recarregue a página e verifique se o app está hospedado em um domínio autorizado.');
+        return Promise.reject(new Error('A API do Google ainda não carregou ou não foi inicializada. Recarregue a página e verifique se o app está hospedado em um domínio autorizado.'));
     }
-    tokenClient.requestAccessToken({ prompt: '' });
+
+    return new Promise((resolve, reject) => {
+        tokenClient.requestAccessToken({
+            prompt: '',
+            callback: response => {
+                if (response.error) {
+                    reject(response);
+                    return;
+                }
+                accessToken = response.access_token;
+                gapi.client.setToken({ access_token: accessToken });
+                googleCalendarConnected = true;
+                updateGoogleAgendaButton();
+                resolve(accessToken);
+            }
+        });
+    });
+}
+
+async function ensureGoogleAccessToken() {
+    if (accessToken) return accessToken;
+    return await requestGoogleAccessToken();
 }
 
 function signOutGoogleAgenda() {
@@ -565,14 +586,23 @@ function mostrarAviso(t) {
 async function apagar(id) {
     if (!confirm("Apagar?")) return;
     const original = atendimentos.find(i => i.id === id) || {};
-    if (original.googleEventoId && isGoogleAgendaConectada()) {
+    let googleRemovido = false;
+
+    if (original.googleEventoId) {
         try {
+            await ensureGoogleAccessToken();
             await removerEventoGoogle(original.googleEventoId);
+            googleRemovido = true;
         } catch (e) {
             console.warn('Falha ao remover evento do Google Calendar', e);
+            mostrarAviso('Apagado localmente, mas o evento do Google Agenda não pôde ser removido. Conecte-se à agenda e tente novamente.');
         }
     }
+
     await db.collection("atendimentos").doc(id).delete();
+    if (googleRemovido) {
+        mostrarAviso('Agendamento excluído e evento removido da Google Agenda.');
+    }
 }
 
 function renderizarGraficos() {
