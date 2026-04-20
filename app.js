@@ -527,6 +527,10 @@ function atualizarView() {
     }
     const lDia = atendimentos.filter(i => i.data === dataF);
     const lMes = atendimentos.filter(i => i.data.startsWith(mesF));
+    console.log('Total atendimentos:', atendimentos.length);
+    console.log('Filtro mês:', mesF);
+    console.log('Atendimentos no mês:', lMes.length);
+    console.log('Datas dos atendimentos:', atendimentos.map(a => a.data));
     renderTabela('corpoDiario', lDia, true);
     renderTabela('corpoMensal', lMes, false);
     calcularResumos('dTotalAtend', 'dTotalRepasse', 'dTotalLiquido', lDia);
@@ -626,6 +630,9 @@ async function apagar(id) {
 function renderizarGraficos() {
     const mes = document.getElementById('dashMesFiltro').value;
     const dados = atendimentos.filter(i => i.data.startsWith(mes));
+    console.log('Dashboard - Filtro mês:', mes);
+    console.log('Dashboard - Atendimentos no mês:', dados.length);
+    console.log('Dashboard - Datas dos atendimentos:', atendimentos.map(a => a.data));
     const totalBruto = dados.reduce((a, b) => a + (b.bruto||0), 0);
     const totalLiquido = dados.reduce((a, b) => a + (b.liquido||0), 0);
     const totalRepasse = dados.reduce((a, b) => a + (b.repasse||0), 0);
