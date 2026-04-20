@@ -625,27 +625,19 @@ async function apagar(id) {
 
 function renderizarGraficos() {
     const mes = document.getElementById('dashMesFiltro').value;
-    const ano = mes.substring(0, 4);
     const dados = atendimentos.filter(i => i.data.startsWith(mes));
-    const dadosAno = atendimentos.filter(i => i.data.startsWith(ano));
     
     const totalBruto = dados.reduce((a, b) => a + (b.bruto||0), 0);
-    const totalBrutoAno = dadosAno.reduce((a, b) => a + (b.bruto||0), 0);
-    const pctBruto = totalBrutoAno ? ((totalBruto / totalBrutoAno) * 100).toFixed(1) : 0;
-    
     const totalRepasse = dados.reduce((a, b) => a + (b.repasse||0), 0);
-    const totalRepasseAno = dadosAno.reduce((a, b) => a + (b.repasse||0), 0);
-    const pctRepasse = totalRepasseAno ? ((totalRepasse / totalRepasseAno) * 100).toFixed(1) : 0;
-    
     const totalLiquido = dados.reduce((a, b) => a + (b.liquido||0), 0);
     const ticketMedio = dados.length ? totalBruto / dados.length : 0;
+    const pctRepasse = totalBruto ? ((totalRepasse / totalBruto) * 100).toFixed(1) : 0;
 
     document.getElementById('dashAtendimentos').innerText = dados.length;
     document.getElementById('dashBruto').innerText = `R$ ${totalBruto.toFixed(2)}`;
     document.getElementById('dashRepasse').innerText = `R$ ${totalRepasse.toFixed(2)}`;
     document.getElementById('dashLiquido').innerText = `R$ ${totalLiquido.toFixed(2)}`;
     document.getElementById('dashTicketMedio').innerText = `R$ ${ticketMedio.toFixed(2)}`;
-    document.getElementById('dashPctBruto').innerText = `${pctBruto}%`;
     document.getElementById('dashPctRepasse').innerText = `${pctRepasse}%`;
     const contProc = {};
     dados.forEach(i => { contProc[i.procedimento] = (contProc[i.procedimento] || 0) + 1; });
