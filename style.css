@@ -195,7 +195,7 @@ label {
 }
 
 @media (min-width: 600px) {
-    .dash-cards { grid-template-columns: repeat(3, 1fr); }
+    .dash-cards { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 }
 
 .card { 
@@ -214,6 +214,8 @@ label {
 .card.pink { background: linear-gradient(135deg, #ff85a2 0%, #ff69b4 100%); }
 .card.dark-pink { background: linear-gradient(135deg, #ff5c8a 0%, #c71585 100%); }
 .card.green { background: linear-gradient(135deg, var(--success-green) 0%, #27ae60 100%); }
+.card.blue { background: linear-gradient(135deg, #5dade2 0%, #2980b9 100%); }
+.card.orange { background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); }
 
 .card h4 { margin: 0; font-size: 14px; opacity: 0.9; }
 .card p { margin: 5px 0 0; font-size: 1.2rem; font-weight: bold; }

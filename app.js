@@ -530,8 +530,26 @@ function atualizarView() {
     renderTabela('corpoDiario', lDia, true);
     renderTabela('corpoMensal', lMes, false);
     calcularResumos('dTotalAtend', 'dTotalRepasse', 'dTotalLiquido', lDia);
+    calcularTotalBruto('dTotalBruto', lDia);
+    calcularTicketMedio('dTicketMedio', lDia);
     calcularResumos('mTotalAtend', 'mTotalRepasse', 'mTotalLiquido', lMes);
+    calcularTicketMedio('mTicketMedio', lMes);
     atualizarAgenda();
+}
+
+function calcularTotalBruto(id, lista) {
+    const elemento = document.getElementById(id);
+    if (!elemento) return;
+    const totalBruto = lista.reduce((soma, item) => soma + (item.bruto || 0), 0);
+    elemento.innerText = `R$ ${totalBruto.toFixed(2)}`;
+}
+
+function calcularTicketMedio(id, lista) {
+    const elemento = document.getElementById(id);
+    if (!elemento) return;
+    const totalBruto = lista.reduce((soma, item) => soma + (item.bruto || 0), 0);
+    const ticket = lista.length ? totalBruto / lista.length : 0;
+    elemento.innerText = `R$ ${ticket.toFixed(2)}`;
 }
 
 function renderTabela(id, lista, acoes) {
@@ -608,9 +626,16 @@ async function apagar(id) {
 function renderizarGraficos() {
     const mes = document.getElementById('dashMesFiltro').value;
     const dados = atendimentos.filter(i => i.data.startsWith(mes));
+    const totalBruto = dados.reduce((a, b) => a + (b.bruto||0), 0);
+    const totalLiquido = dados.reduce((a, b) => a + (b.liquido||0), 0);
+    const totalRepasse = dados.reduce((a, b) => a + (b.repasse||0), 0);
+    const ticketMedio = dados.length ? totalBruto / dados.length : 0;
+
     document.getElementById('dashAtendimentos').innerText = dados.length;
-    document.getElementById('dashBruto').innerText = `R$ ${dados.reduce((a, b) => a + (b.bruto||0), 0).toFixed(2)}`;
-    document.getElementById('dashLiquido').innerText = `R$ ${dados.reduce((a, b) => a + (b.liquido||0), 0).toFixed(2)}`;
+    document.getElementById('dashBruto').innerText = `R$ ${totalBruto.toFixed(2)}`;
+    document.getElementById('dashRepasse').innerText = `R$ ${totalRepasse.toFixed(2)}`;
+    document.getElementById('dashLiquido').innerText = `R$ ${totalLiquido.toFixed(2)}`;
+    document.getElementById('dashTicketMedio').innerText = `R$ ${ticketMedio.toFixed(2)}`;
     const contProc = {};
     dados.forEach(i => { contProc[i.procedimento] = (contProc[i.procedimento] || 0) + 1; });
     let top = "-"; let max = 0;
