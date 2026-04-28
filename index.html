@@ -13,16 +13,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <link rel="stylesheet" href="style.css">
-
-    <style>
-/* 🟢 REFORÇO DE FONTE E CORES */
-body, table, td, th, label, input, select {
-    font-weight: 700 !important;
-    color: #2c3e50 !important;
-}
-
-table th { background-color: #f8f9fa; text-transform: uppercase; font-size: 13px; }
-    </style>
 </head>
 <body>
 
@@ -130,6 +120,28 @@ table th { background-color: #f8f9fa; text-transform: uppercase; font-size: 13px
                 <div class="card pink"><h4>Total Visitas</h4><p id="hVisitas">0</p></div>
                 <div class="card green"><h4>Total Investido</h4><p id="hTotal">R$ 0,00</p></div>
             </div>
+            
+            <!-- Ranking de Clientes -->
+            <div class="card ranking-clientes" style="margin-top: 20px; padding: 20px;">
+                <h3 style="color: var(--primary-pink); margin-bottom: 15px;">🏆 Ranking de Clientes</h3>
+                <div class="grid ranking-grid">
+                    <div>
+                        <h4 style="color: #3498db;">Mais Frequentes</h4>
+                        <table style="width: 100%;">
+                            <thead><tr><th>#</th><th>Cliente</th><th>Visitas</th></tr></thead>
+                            <tbody id="rankingFrequentes"></tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h4 style="color: #27ae60;">Maiores Gastos</h4>
+                        <table style="width: 100%;">
+                            <thead><tr><th>#</th><th>Cliente</th><th>Total Gasto</th></tr></thead>
+                            <tbody id="rankingGastos"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
             <div class="table-container">
                 <table>
                     <thead><tr><th>Data</th><th>Cliente</th><th>Procedimento</th><th>Valor</th></tr></thead>

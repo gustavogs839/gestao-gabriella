@@ -1,5 +1,5 @@
 // firebase-config.js
-const firebaseConfig = {
+const firebaseConfig = { // Atenção: Em repositórios públicos, use variáveis de ambiente ou oculte este arquivo
     apiKey: "AIzaSyDz6JgSxOsfiB7smBOKtDBlb9waKKYdIQE",
     authDomain: "gestaogabriella-b6b5f.firebaseapp.com",
     projectId: "gestaogabriella-b6b5f",
@@ -9,5 +9,5 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-var db = firebase.firestore(); // Usar var para garantir escopo global entre arquivos
-var auth = firebase.auth();
+const db = firebase.firestore();
+const auth = firebase.auth();

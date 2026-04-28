@@ -6,6 +6,7 @@ let chartSemanal = null;
 let chartServicos = null;
 
 const GOOGLE_CLIENT_ID = '751665904056-ojml1pkgpp57ovasjktp8uolh2ifukbf.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = typeof firebaseConfig !== 'undefined' ? firebaseConfig.googleClientId : ''; 
 const GOOGLE_API_KEY = ''; // Preencha se tiver uma API key do Google Cloud (não é obrigatória para OAuth + Calendar API)
 let googleCalendarConnected = false;
 let accessToken = null;
@@ -250,9 +251,7 @@ async function carregarClientes() {
     db.collection("clientes").where("owner", "==", user.uid).onSnapshot(snap => {
         const tbody = document.getElementById('corpoTabelaClientes');
         const datalist = document.getElementById('listaClientes');
-        if(!tbody) return;
-        tbody.innerHTML = ''; 
-        if(datalist) datalist.innerHTML = ''; 
+        
         listaClientesMemoria = [];
         let tmp = [];
         snap.forEach(doc => {
@@ -261,11 +260,11 @@ async function carregarClientes() {
         });
         tmp.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
         listaClientesMemoria = tmp;
+
         if (datalist) {
-            tmp.forEach(c => {
-                datalist.innerHTML += `<option value="${c.nome}">`;
-            });
+            datalist.innerHTML = tmp.map(c => `<option value="${c.nome}">`).join('');
         }
+
         renderizarClientes();
         // Populate select for scheduling and allow filtering by name
         filtrarClientesDiario();
@@ -298,13 +297,12 @@ function renderizarClientes() {
     const tbody = document.getElementById('corpoTabelaClientes'); if(!tbody) return;
     const filtro = (document.getElementById('filtroCliente')?.value || '').trim().toLowerCase();
     const listaFiltrada = filtro ? listaClientesMemoria.filter(c => c.nome.toLowerCase().includes(filtro)) : listaClientesMemoria;
-    tbody.innerHTML = '';
-    listaFiltrada.forEach(c => {
-        tbody.innerHTML += `<tr><td>${c.nome}</td><td>${c.telefone || ''}</td><td>
+    
+    tbody.innerHTML = listaFiltrada.map(c => `
+        <tr><td>${c.nome}</td><td>${c.telefone || ''}</td><td>
             <button onclick="editarCliente('${c.id}','${c.nome.replace(/'/g, "\\'")}','${(c.telefone || '').replace(/'/g, "\\'")}')" class="btn-table-action btn-edit" title="Editar">✎</button>
             <button onclick="excluirCliente('${c.id}')" class="btn-table-action btn-del" title="Excluir">X</button>
-        </td></tr>`;
-    });
+        </td></tr>`).join('');
 }
 
 function filtrarClientes() {
@@ -494,7 +492,7 @@ function atualizarAgenda() {
         const detalhesEvento = `Cliente: ${i.cliente}\nServiço: ${i.procedimento}\nTelefone: ${i.telefone || 'N/A'}\nHorário: ${i.horario}\nData: ${dExt}`;
         const gcalLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(tituloEvento)}&dates=${eventoInicio}/${eventoFim}&details=${encodeURIComponent(detalhesEvento)}&ctz=America/Sao_Paulo`;
 
-        container.innerHTML += `
+        const cardHtml = `
         <div class="agenda-card">
             <div class="agenda-hora">${i.horario || '--:--'}</div>
             <div class="agenda-info">
@@ -513,6 +511,7 @@ function atualizarAgenda() {
                 <button onclick="prepararEdicao('${i.id}')">✏️ Editar</button>
             </div>
         </div>`;
+        container.insertAdjacentHTML('beforeend', cardHtml);
     });
 }
 
@@ -535,6 +534,7 @@ function atualizarView() {
     calcularResumos('mTotalAtend', 'mTotalRepasse', 'mTotalLiquido', lMes);
     calcularTicketMedio('mTicketMedio', lMes);
     atualizarAgenda();
+    gerarRanking();
 }
 
 function calcularTotalBruto(id, lista) {
@@ -554,9 +554,9 @@ function calcularTicketMedio(id, lista) {
 
 function renderTabela(id, lista, acoes) {
     const corpo = document.getElementById(id); if(!corpo) return;
-    corpo.innerHTML = "";
-    lista.forEach(i => {
-        corpo.innerHTML += `<tr>
+    
+    corpo.innerHTML = lista.map(i => `
+        <tr>
             ${acoes ? '' : `<td>${i.data.split('-').reverse().join('/')}</td>`}
             <td>${i.cliente}</td><td>${i.procedimento}</td>
             <td>R$ ${(i.bruto || 0).toFixed(2)}</td><td>R$ ${(i.liquido || 0).toFixed(2)}</td>
@@ -564,8 +564,7 @@ function renderTabela(id, lista, acoes) {
                 <button onclick="prepararEdicao('${i.id}')" class="btn-table-action btn-edit">✎</button>
                 <button onclick="apagar('${i.id}')" class="btn-table-action btn-del">X</button>
             </td>` : ''}
-        </tr>`;
-    });
+        </tr>`).join('');
 }
 
 function calcularResumos(at, re, li, lista) {
@@ -586,13 +585,58 @@ function verHistorico() {
     }
     hist.sort((a,b)=>b.data.localeCompare(a.data));
     const corpo = document.getElementById('corpoHist'); if(!corpo) return;
-    corpo.innerHTML = ""; let total = 0;
-    hist.forEach(i => { 
-        total += (i.bruto || 0); 
-        corpo.innerHTML += `<tr><td>${i.data.split('-').reverse().join('/')}</td><td>${i.cliente}</td><td>${i.procedimento}</td><td>R$ ${(i.bruto || 0).toFixed(2)}</td></tr>`;
-    });
+    
+    let total = hist.reduce((a, b) => a + (b.bruto || 0), 0);
+    corpo.innerHTML = hist.map(i => `
+        <tr><td>${i.data.split('-').reverse().join('/')}</td><td>${i.cliente}</td><td>${i.procedimento}</td><td>R$ ${(i.bruto || 0).toFixed(2)}</td></tr>
+    `).join('');
+    
     document.getElementById('hVisitas').innerText = hist.length; 
     document.getElementById('hTotal').innerText = `R$ ${total.toFixed(2)}`;
+    
+    // Atualiza o ranking
+    gerarRanking();
+}
+
+function gerarRanking() {
+    // Contagem de visitas por cliente
+    const contagemVisitas = {};
+    // Total gasto por cliente
+    const totalGastos = {};
+    
+    atendimentos.forEach(at => {
+        const cliente = at.cliente;
+        if (cliente) {
+            contagemVisitas[cliente] = (contagemVisitas[cliente] || 0) + 1;
+            totalGastos[cliente] = (totalGastos[cliente] || 0) + (at.bruto || 0);
+        }
+    });
+    
+    // Ranking de mais frequentes (top 5)
+    const rankingFrequentes = Object.entries(contagemVisitas)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+    
+    // Ranking de maiores gastos (top 5)
+    const rankingGastos = Object.entries(totalGastos)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+    
+    // Renderiza ranking de frequentes
+    const corpoFrequentes = document.getElementById('rankingFrequentes');
+    if (corpoFrequentes) {
+        corpoFrequentes.innerHTML = rankingFrequentes.length > 0 
+            ? rankingFrequentes.map((item, idx) => `<tr><td>${idx + 1}º</td><td>${item[0]}</td><td><strong>${item[1]}</strong> visitas</td></tr>`).join('')
+            : '<tr><td colspan="3">Nenhum atendimento registrado</td></tr>';
+    }
+    
+    // Renderiza ranking de gastos
+    const corpoGastos = document.getElementById('rankingGastos');
+    if (corpoGastos) {
+        corpoGastos.innerHTML = rankingGastos.length > 0 
+            ? rankingGastos.map((item, idx) => `<tr><td>${idx + 1}º</td><td>${item[0]}</td><td><strong>R$ ${item[1].toFixed(2)}</strong></td></tr>`).join('')
+            : '<tr><td colspan="3">Nenhum atendimento registrado</td></tr>';
+    }
 }
 
 function mostrarAviso(t) {
@@ -650,12 +694,12 @@ function renderizarGraficos() {
     if (chartSemanal) chartSemanal.destroy();
     chartSemanal = new Chart(document.getElementById('graficoSemanal'), {
         type: 'line',
-        data: { labels: dias.map(d => d.split('-').reverse().slice(0,2).join('/')), datasets: [{ label: 'Faturamento R$', data: fat, borderColor: '#c71585', backgroundColor: 'rgba(255, 105, 180, 0.2)', fill: true }] }
+        data: { labels: dias.map(d => d.split('-').reverse().slice(0,2).join('/')), datasets: [{ label: 'Faturamento R$', data: fat, borderColor: '#7d3c98', backgroundColor: 'rgba(155, 89, 182, 0.2)', fill: true }] }
     });
     if (chartServicos) chartServicos.destroy();
     chartServicos = new Chart(document.getElementById('graficoServicos'), {
         type: 'doughnut',
-        data: { labels: Object.keys(contProc), datasets: [{ data: Object.values(contProc), backgroundColor: ['#ff69b4', '#c71585', '#2ecc71', '#3498db', '#f39c12'] }] }
+        data: { labels: Object.keys(contProc), datasets: [{ data: Object.values(contProc), backgroundColor: ['#9b59b6', '#7d3c98', '#2ecc71', '#3498db', '#f39c12'] }] }
     });
 }
 
@@ -673,17 +717,17 @@ function gerarPDF(modo) {
         const dObj = new Date(filtro + 'T00:00:00');
         dataExtenso = dObj.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     }
-    doc.setFontSize(18); doc.setTextColor(199, 21, 133); doc.text("Relatório Maria Gabriella", 14, 20);
+    doc.setFontSize(18); doc.setTextColor(125, 60, 152); doc.text("Relatório Maria Gabriella", 14, 20);
     doc.setFontSize(11); doc.setTextColor(100); doc.text(`Período: ${dataExtenso}`, 14, 28);
     const colunas = [["Data", "Cliente", "Serviço", "Bruto", "Líquido"]];
     const linhas = lista.map(i => [i.data.split('-').reverse().join('/'), i.cliente, i.procedimento, `R$ ${(i.bruto||0).toFixed(2)}`, `R$ ${(i.liquido||0).toFixed(2)}`]);
-    doc.autoTable({ head: colunas, body: linhas, startY: 35, theme: 'striped', headStyles: { fillColor: [199, 21, 133] } });
+    doc.autoTable({ head: colunas, body: linhas, startY: 35, theme: 'striped', headStyles: { fillColor: [125, 60, 152] } });
     const finalY = doc.lastAutoTable.finalY + 10;
-    doc.setDrawColor(255, 105, 180); doc.setFillColor(252, 248, 250); 
+    doc.setDrawColor(155, 89, 182); doc.setFillColor(244, 236, 247); 
     doc.rect(14, finalY, 182, 35, 'FD');
     doc.setFont(undefined, 'bold'); doc.setTextColor(0); doc.text("RESUMO DO PERÍODO:", 20, finalY + 10);
     doc.setFont(undefined, 'normal'); doc.text(`Total Bruto: R$ ${totalBruto.toFixed(2)}`, 20, finalY + 20);
-    doc.setTextColor(199, 21, 133); doc.text(`Repasse Salão: R$ ${totalRepasse.toFixed(2)}`, 120, finalY + 18);
+    doc.setTextColor(125, 60, 152); doc.text(`Repasse Salão: R$ ${totalRepasse.toFixed(2)}`, 120, finalY + 18);
     doc.setTextColor(46, 204, 113); doc.setFontSize(13); doc.setFont(undefined, 'bold');
     doc.text(`LUCRO: R$ ${totalLiquido.toFixed(2)}`, 120, finalY + 28);
     doc.save(`Relatorio_${filtro}.pdf`);

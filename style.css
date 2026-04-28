@@ -2,20 +2,27 @@
    CONFIGURAÇÕES GERAIS E CORES
    ========================================================================== */
 :root { 
-    --primary-pink: #ff69b4; 
-    --dark-pink: #c71585; 
+    --primary-pink: #9b59b6; /* Roxo Amethyst */
+    --dark-pink: #7d3c98;    /* Roxo Escuro */
     --success-green: #2ecc71; 
-    --bg-light: #fcf8fa;
+    --bg-light: #f5f0f9;
     --white: #ffffff;
     --gray: #eeeeee;
 }
 
-body { 
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    background-color: var(--bg-light); 
-    margin: 0; 
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f4ecf7 0%, #e8daef 100%);
+    min-height: 100vh;
+    margin: 0;
     padding: 10px;
-    color: #333;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Reforço para inputs e tabelas */
+table, td, th, label, input, select {
+    font-weight: 700 !important;
 }
 
 /* Container Principal */
@@ -35,7 +42,7 @@ header {
     background: linear-gradient(135deg, var(--primary-pink) 0%, var(--dark-pink) 100%);
     border-radius: 15px;
     color: var(--white);
-    box-shadow: 0 4px 15px rgba(199, 21, 133, 0.3);
+    box-shadow: 0 4px 15px rgba(125, 60, 152, 0.3);
 }
 
 header h1 { 
@@ -59,7 +66,7 @@ header h1 {
     padding: 10px 14px;
     border-radius: 999px;
     transition: transform 0.2s ease, background 0.2s ease;
-    box-shadow: 0 4px 15px rgba(199, 21, 133, 0.18);
+    box-shadow: 0 4px 15px rgba(125, 60, 152, 0.18);
 }
 
 .btn-sair:hover {
@@ -92,26 +99,27 @@ header h1 {
     background: var(--primary-pink);
     color: var(--white);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(199, 21, 133, 0.3);
+    box-shadow: 0 4px 12px rgba(125, 60, 152, 0.3);
 }
 
 .nav button.active { 
     background: linear-gradient(135deg, var(--primary-pink) 0%, var(--dark-pink) 100%);
     color: var(--white); 
-    box-shadow: 0 4px 15px rgba(199, 21, 133, 0.4);
+    box-shadow: 0 4px 15px rgba(125, 60, 152, 0.4);
 }
 
 /* ==========================================================================
    CONTEÚDO DAS ABAS E FORMULÁRIOS
    ========================================================================== */
-.aba { 
-    background: linear-gradient(135deg, var(--white) 0%, #fce4ec 100%);
-    padding: 25px; 
-    border-radius: 20px; 
-    box-shadow: 0 8px 25px rgba(0,0,0,0.08); 
-    display: none; 
-    border-top: 6px solid var(--primary-pink); 
+.aba {
+    background: linear-gradient(135deg, #fdfbff 0%, #f5eef8 100%);
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(125, 60, 152, 0.08);
+    display: none;
+    border-top: 6px solid var(--primary-pink);
     margin-bottom: 30px;
+    border: 1.5px solid #e8daef;
 }
 
 .aba.active { 
@@ -134,7 +142,7 @@ input, select {
     width: 100%; 
     padding: 14px; 
     font-size: 16px; 
-    border: 1px solid #ffc0cb; 
+    border: 1px solid #d7bde2; 
     border-radius: 8px; 
     box-sizing: border-box; 
 }
@@ -159,12 +167,12 @@ label {
     font-size: 16px; 
     margin-top: 10px; 
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 15px rgba(199, 21, 133, 0.3);
+    box-shadow: 0 4px 15px rgba(125, 60, 152, 0.3);
 }
 
 .btn-acao:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(199, 21, 133, 0.4);
+    box-shadow: 0 6px 20px rgba(125, 60, 152, 0.4);
 }
 
 .btn-pdf { 
@@ -198,24 +206,74 @@ label {
     .dash-cards { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 }
 
-.card { 
-    padding: 20px; 
-    border-radius: 15px; 
-    color: var(--white); 
-    text-align: center; 
+
+.card {
+    padding: 20px;
+    border-radius: 15px;
+    color: var(--white);
+    text-align: center;
     box-shadow: 0 6px 20px rgba(0,0,0,0.1);
     transition: transform 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 auto 10px auto;
+    max-width: 100%;
 }
 
 .card:hover {
     transform: translateY(-3px);
 }
 
-.card.pink { background: linear-gradient(135deg, #ff85a2 0%, #ff69b4 100%); }
-.card.dark-pink { background: linear-gradient(135deg, #ff5c8a 0%, #c71585 100%); }
-.card.green { background: linear-gradient(135deg, var(--success-green) 0%, #27ae60 100%); }
-.card.blue { background: linear-gradient(135deg, #5dade2 0%, #2980b9 100%); }
-.card.orange { background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); }
+
+.card.pink { background: linear-gradient(135deg, #af7ac5 0%, #9b59b6 100%); color: var(--white); }
+.card.dark-pink { background: linear-gradient(135deg, #8e44ad 0%, #7d3c98 100%); color: var(--white); }
+.card.green { background: linear-gradient(135deg, var(--success-green) 0%, #27ae60 100%); color: var(--white); }
+.card.blue { background: linear-gradient(135deg, #5dade2 0%, #2980b9 100%); color: var(--white); }
+.card.orange { background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: var(--white); }
+
+/* Ajuste no Card do ranking de clientes */
+.card.ranking-clientes {
+    background: var(--white);
+    color: #2c3e50 !important;
+    box-shadow: 0 6px 20px rgba(155, 89, 182, 0.13);
+    margin-top: 25px;
+    padding: 20px 10px;
+    width: 100%;
+    box-sizing: border-box;
+    border: 2px solid #f5eef8;
+}
+
+.ranking-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* Remove o min-width global apenas para as tabelas de ranking para não vazar */
+.card.ranking-clientes table {
+    min-width: auto;
+}
+
+/* Tabelas do ranking */
+#rankingFrequentes td, #rankingFrequentes th,
+#rankingGastos td, #rankingGastos th {
+    color: #2c3e50;
+    background: transparent;
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 1px solid #eee;
+    font-size: 15px;
+}
+
+#rankingFrequentes th, #rankingGastos th {
+    font-weight: bold;
+    background: #f8f9fa;
+}
+
+@media (max-width: 900px) {
+    .ranking-grid {
+        grid-template-columns: 1fr;
+    }
+}
 
 .card h4 { margin: 0; font-size: 14px; opacity: 0.9; }
 .card p { margin: 5px 0 0; font-size: 1.2rem; font-weight: bold; }
@@ -247,7 +305,7 @@ table {
     border-collapse: collapse; 
 }
 
-th { background: #3d6e60; color: var(--white); padding: 12px; text-align: left; }
+th { background: var(--dark-pink); color: var(--white); padding: 12px; text-align: left; text-transform: uppercase; font-size: 13px; }
 td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
 
 .btn-del { 
@@ -316,7 +374,7 @@ td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
 }
 
 .agenda-card {
-    background: linear-gradient(135deg, #fff 0%, #fce4ec 100%);
+    background: linear-gradient(135deg, #fff 0%, #f4ecf7 100%);
     border-left: 6px solid var(--dark-pink);
     padding: 20px;
     border-radius: 15px;
@@ -336,7 +394,7 @@ td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
     right: 0;
     width: 50px;
     height: 50px;
-    background: rgba(255, 105, 180, 0.1);
+    background: rgba(155, 89, 182, 0.1);
     border-radius: 50%;
     transform: translate(25px, -25px);
 }
@@ -477,11 +535,10 @@ td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
 
 /* Formulário de cadastro de cliente */
 .card.form-container {
-    background: linear-gradient(135deg, #fce4ec 0%, #fff 100%);
+    background: linear-gradient(135deg, #f4ecf7 0%, #fff 100%);
     border: 2px solid var(--primary-pink);
     border-radius: 15px;
     padding: 20px;
     margin-bottom: 20px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.1);
 }
-
