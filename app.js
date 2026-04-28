@@ -6,7 +6,6 @@ let chartSemanal = null;
 let chartServicos = null;
 
 const GOOGLE_CLIENT_ID = '751665904056-ojml1pkgpp57ovasjktp8uolh2ifukbf.apps.googleusercontent.com';
-const GOOGLE_CLIENT_ID = typeof firebaseConfig !== 'undefined' ? firebaseConfig.googleClientId : ''; 
 const GOOGLE_API_KEY = ''; // Preencha se tiver uma API key do Google Cloud (não é obrigatória para OAuth + Calendar API)
 let googleCalendarConnected = false;
 let accessToken = null;
