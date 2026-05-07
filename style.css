@@ -210,7 +210,7 @@ label {
 .card {
     padding: 20px;
     border-radius: 15px;
-    color: var(--white);
+    color: #2c3e50;
     text-align: center;
     box-shadow: 0 6px 20px rgba(0,0,0,0.1);
     transition: transform 0.3s ease;
@@ -234,7 +234,6 @@ label {
 /* Ajuste no Card do ranking de clientes */
 .card.ranking-clientes {
     background: var(--white);
-    color: #2c3e50 !important;
     box-shadow: 0 6px 20px rgba(155, 89, 182, 0.13);
     margin-top: 25px;
     padding: 20px 10px;
